@@ -7,8 +7,7 @@ class AppLogo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.all(20),
-      decoration: BoxDecoration(),
+      padding: EdgeInsets.all(15),
       child: Image.asset(imagePath),
     );
   }

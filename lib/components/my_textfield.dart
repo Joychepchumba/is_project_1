@@ -14,7 +14,7 @@ class MyTextfield extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 25.0),
+      padding: const EdgeInsets.symmetric(horizontal: 8.0),
       child: TextField(
         controller: controller, // Used to access what users type
         obscureText: obscureText, // Boolean to mask password when typing
@@ -23,7 +23,7 @@ class MyTextfield extends StatelessWidget {
             borderSide: BorderSide(color: Colors.white),
           ),
           focusedBorder: OutlineInputBorder(
-            borderSide: BorderSide(color: Colors.grey.shade400),
+            borderSide: BorderSide(color: Colors.blueAccent.shade400),
           ),
           fillColor: Colors.grey.shade200,
           filled: true,
