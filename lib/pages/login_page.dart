@@ -20,8 +20,9 @@ class _LoginPageState extends State<LoginPage> {
   final passwordController = TextEditingController();
   bool isLoading = false;
 
-  // Your Vercel deployed API URL
-  static const String baseUrl = 'https://your-project-name.vercel.app';
+  // Your deployed Vercel API URL
+  static const String baseUrl =
+      'https://is-project-1-git-main-joychepchumbas-projects.vercel.app';
 
   void signUserIn() async {
     // Validate input
