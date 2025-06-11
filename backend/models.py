@@ -7,6 +7,8 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 import uuid
 import datetime
+from pydantic import BaseModel, EmailStr
+from typing import Optional
 
 class Role(Base):
     __tablename__ = "roles"
@@ -25,13 +27,13 @@ class User(Base):
     email = Column(String(255), unique=True)
     password_hash = Column(Text)
     role_id = Column(Integer, ForeignKey("roles.id"))
+    profile_image = Column(Text, nullable=True)
     created_at = Column(TIMESTAMP, server_default=text("now()"))
-
+    
     role = relationship("Role", back_populates="users")
     safety_tips = relationship("SafetyTip", back_populates="submitted_by_user")
-    emergency_contacts = relationship("EmergencyContact", back_populates="user")
     panic_info = relationship("PanicInfo", back_populates="user")
-
+    emergency_contacts = relationship("EmergencyContact", back_populates="user", cascade="all, delete-orphan")
 
 class LegalAidProvider(Base):
     __tablename__ = "legal_aid_providers"
@@ -42,6 +44,7 @@ class LegalAidProvider(Base):
     password_hash = Column(Text)
     expertise_area = Column(String(255))
     status = Column(String(50))
+    profile_image = Column(Text, nullable=True)
     created_at = Column(TIMESTAMP, server_default=text("now()"))
     role_id = Column(Integer, ForeignKey("roles.id"))
 
@@ -130,3 +133,4 @@ class LegalAidTokenTable(Base):
     refresh_token = Column(String(450), nullable=False)
     status = Column(Boolean)
     created_date = Column(DateTime, default=datetime.datetime.now)
+

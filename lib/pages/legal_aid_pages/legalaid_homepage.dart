@@ -1,0 +1,288 @@
+import 'package:flutter/material.dart';
+import 'package:is_project_1/components/custom_legal_navbar.dart';
+
+class LegalAidHomepage extends StatefulWidget {
+  const LegalAidHomepage({super.key});
+
+  @override
+  State<LegalAidHomepage> createState() => _LegalAidHomepageState();
+}
+
+class _LegalAidHomepageState extends State<LegalAidHomepage> {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF5F5F5),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF4FABCB), // RGB(79, 171, 203)
+        elevation: 0,
+        title: const Text(
+          'Legal Aid provider',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              // Handle logout
+            },
+            child: const Text(
+              'Logout',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Welcome Message
+            const Text(
+              'Welcome back,',
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey,
+                fontWeight: FontWeight.w400,
+              ),
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              'Advocate Sarah Kimani',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // Statistics Cards
+            Row(
+              children: [
+                Expanded(
+                  child: _buildStatCard('12', 'Pending Requests', Colors.red),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: _buildStatCard('34', 'Active Cases', Colors.green),
+                ),
+              ],
+            ),
+            const SizedBox(height: 32),
+
+            // Quick Actions Section
+            const Text(
+              'Quick Actions',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Quick Action Items
+            Row(
+              children: [
+                Expanded(
+                  child: _buildQuickActionCard(
+                    icon: Icons.visibility,
+                    iconColor: const Color(0xFF4FABCB),
+                    title: 'View Client\nMatches',
+                    onTap: () {
+                      // Handle view client matches
+                    },
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: _buildQuickActionCard(
+                    icon: Icons.add,
+                    iconColor: const Color(0xFF4FABCB),
+                    title: 'Add Legal Info',
+                    onTap: () {
+                      // Handle add legal info
+                    },
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildQuickActionCard(
+                    icon: Icons.lightbulb_outline,
+                    iconColor: const Color(0xFF4FABCB),
+                    title: 'Add Safety Tips',
+                    onTap: () {
+                      // Handle add safety tips
+                    },
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: _buildQuickActionCard(
+                    icon: Icons.edit,
+                    iconColor: const Color(0xFF4FABCB),
+                    title: 'Edit Profile',
+                    onTap: () {
+                      // Handle edit profile
+                    },
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 32),
+
+            // Recent Activity Section
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Recent Activity',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+                Icon(
+                  Icons.keyboard_arrow_down,
+                  color: Colors.grey[600],
+                  size: 24,
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // Activity Items (placeholder)
+            Container(
+              width: double.infinity,
+              height: 100,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.1),
+                    spreadRadius: 1,
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: const Center(
+                child: Text(
+                  'No recent activity',
+                  style: TextStyle(color: Colors.grey, fontSize: 14),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+      bottomNavigationBar: const CustomLegalNavigationBar(currentIndex: 0),
+    );
+  }
+
+  Widget _buildStatCard(String value, String label, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            spreadRadius: 1,
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 12,
+              color: Colors.grey,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuickActionCard({
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.1),
+              spreadRadius: 1,
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: iconColor.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: iconColor, size: 24),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: Colors.black87,
+                height: 1.2,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

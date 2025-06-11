@@ -3,8 +3,11 @@ import 'package:is_project_1/components/app_logo.dart';
 import 'package:is_project_1/components/my_button.dart';
 import 'package:is_project_1/components/my_textfield.dart';
 import 'package:is_project_1/components/square_tile.dart';
+import 'package:is_project_1/pages/admin_pages/admin_homepage.dart';
+import 'package:is_project_1/pages/legal_aid_pages/legalaid_homepage.dart';
 import 'package:is_project_1/pages/register_page.dart';
 import 'package:http/http.dart' as http;
+import 'package:is_project_1/pages/user_pages/user_homepage.dart';
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -19,13 +22,23 @@ class _LoginPageState extends State<LoginPage> {
   final usernameController = TextEditingController();
   final passwordController = TextEditingController();
   bool isLoading = false;
+  bool _obscurePassword = true;
 
-  // Your deployed Vercel API URL
+  // Your deployed Vercel API URL for now we'll use the local Ip cause vercel did that thing:(
   static const String baseUrl =
-      'https://is-project-1-git-main-joychepchumbas-projects.vercel.app';
+      'https://ed2a-2c0f-fe38-2017-380-a41c-62d8-659-2225.ngrok-free.app';
+
+  Map<String, dynamic> decodeJWT(String token) {
+    final parts = token.split('.');
+    if (parts.length != 3) throw Exception('Invalid token');
+
+    final payload = parts[1];
+    final normalized = base64Url.normalize(payload);
+    final decoded = utf8.decode(base64Url.decode(normalized));
+    return json.decode(decoded);
+  }
 
   void signUserIn() async {
-    // Validate input
     if (usernameController.text.isEmpty || passwordController.text.isEmpty) {
       showErrorMessage('Please fill in all fields');
       return;
@@ -36,7 +49,6 @@ class _LoginPageState extends State<LoginPage> {
     });
 
     try {
-      // Prepare the request body for OAuth2PasswordRequestForm
       final response = await http.post(
         Uri.parse('$baseUrl/login'),
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
@@ -47,22 +59,39 @@ class _LoginPageState extends State<LoginPage> {
       );
 
       if (response.statusCode == 200) {
-        // Parse the response
-        final Map<String, dynamic> responseData = json.decode(response.body);
+        final Map responseData = json.decode(response.body);
 
-        // Store tokens securely
         await storeTokens(
           responseData['access_token'],
           responseData['refresh_token'],
         );
 
-        // Navigate to home page or dashboard
-        if (mounted) {
-          Navigator.pushReplacementNamed(
-            context,
-            '/home',
-          ); // Update with your route
-          showSuccessMessage('Login successful!');
+        // Decode the JWT to get role information
+        try {
+          final tokenPayload = decodeJWT(responseData['access_token']);
+          int roleId = tokenPayload['role_id'];
+          //int user_id = int(tokenPayload['user_id']);
+
+          if (mounted) {
+            Widget destinationPage;
+            if (roleId == 4) {
+              destinationPage = const AdminHomepage();
+            } else if (roleId == 6) {
+              destinationPage = const LegalAidHomepage();
+            } else {
+              destinationPage = const UserHomepage();
+            }
+
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => destinationPage),
+            );
+
+            showSuccessMessage('Login successful!');
+          }
+        } catch (e) {
+          showErrorMessage('Authentication error. Please try again.');
+          print('JWT decode error: $e');
         }
       } else if (response.statusCode == 400) {
         final Map<String, dynamic> errorData = json.decode(response.body);
@@ -150,7 +179,19 @@ class _LoginPageState extends State<LoginPage> {
                 MyTextfield(
                   controller: passwordController,
                   hintText: 'Password',
-                  obscureText: true,
+                  obscureText: _obscurePassword,
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscurePassword
+                          ? Icons.visibility_off
+                          : Icons.visibility,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _obscurePassword = !_obscurePassword;
+                      });
+                    },
+                  ),
                 ),
                 const SizedBox(height: 10),
                 //forgot password?
@@ -197,17 +238,6 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                 ),
 
-                //google sign in button.
-                const SizedBox(height: 30),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: const [
-                    //google btn
-                    SquareTile(imagePath: 'assets/images/google_logo.png'),
-                    SizedBox(width: 10),
-                  ],
-                ),
-                const SizedBox(height: 30),
                 //Register
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -249,5 +279,22 @@ class _LoginPageState extends State<LoginPage> {
     usernameController.dispose();
     passwordController.dispose();
     super.dispose();
+  }
+}
+
+class SuccessPage extends StatelessWidget {
+  const SuccessPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Home')),
+      body: const Center(
+        child: Text(
+          'Welcome, you are logged in!',
+          style: TextStyle(fontSize: 24),
+        ),
+      ),
+    );
   }
 }

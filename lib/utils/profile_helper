@@ -1,0 +1,93 @@
+class ProfileHelper {
+  // Decode JWT token to get user info (you'll need to implement this based on your JWT structure)
+  static Future<UserProfile?> getCurrentUser() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('auth_token');
+      
+      if (token == null) return null;
+      
+      // Decode JWT token here and extract user information
+      // This is a placeholder - implement based on your JWT structure
+      final userJson = await _decodeTokenAndGetUserInfo(token);
+      
+      if (userJson != null) {
+        return UserProfile.fromJson(userJson);
+      }
+      
+      return null;
+    } catch (e) {
+      print('Error getting current user: $e');
+      return null;
+    }
+  }
+  
+  static Future<Map<String, dynamic>?> _decodeTokenAndGetUserInfo(String token) async {
+    // Implement JWT decoding logic here
+    // You might want to call an API endpoint to get user details
+    // or decode the JWT token locally
+    
+    // For now, returning null - you need to implement this
+    return null;
+  }
+  
+  // Navigate to profile screen
+  static void navigateToProfile(BuildContext context, UserProfile user) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ProfileScreen(currentUser: user),
+      ),
+    ).then((result) {
+      // Handle result if needed (e.g., refresh user data)
+      if (result == true) {
+        // Profile was updated successfully
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Profile updated successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    });
+  }
+  
+  // Create profile icon for navigation
+  static Widget buildProfileIcon({
+    required BuildContext context,
+    required UserProfile user,
+    double size = 32.0,
+  }) {
+    return GestureDetector(
+      onTap: () => navigateToProfile(context, user),
+      child: Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: Colors.lightBlue,
+          border: Border.all(color: Colors.white, width: 2),
+        ),
+        child: user.profileImage != null && user.profileImage!.isNotEmpty
+            ? ClipOval(
+                child: Image.network(
+                  user.profileImage!,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Icon(
+                      Icons.person,
+                      color: Colors.white,
+                      size: size * 0.6,
+                    );
+                  },
+                ),
+              )
+            : Icon(
+                Icons.person,
+                color: Colors.white,
+                size: size * 0.6,
+              ),
+      ),
+    );
+  }
+}

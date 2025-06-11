@@ -19,6 +19,12 @@ class UserBase(BaseModel):
     phone_number: str  
     email: EmailStr
     role_id: int
+    profile_image: Optional[str] = None
+
+    emergency_contact_name: Optional[str] = None
+    emergency_contact_number: Optional[str] = None
+    emergency_contact_email: Optional[EmailStr] = None
+
 
 class CreateUser(UserBase):
     password_hash: Optional[str] = None  # optional now, because Google users may not have a password
@@ -67,6 +73,21 @@ class TokenCreate(BaseModel):
 
 
 # Legal Aid Provider schemas
+class editprofile(BaseModel):
+    old_password: str
+    new_password: str
+    full_name: str
+    email: str
+    phone_number: str
+    profile_image: Optional[str] = None
+    
+    # Emergency contact fields (for regular users)
+    emergency_contact_name: Optional[str] = None
+    emergency_contact_email: Optional[str] = None
+    emergency_contact_number: Optional[str] = None
+    
+    # Legal aid specific fields
+    expertise_area: Optional[str] = None
 
 
 class LegalAidProvider(BaseModel):
@@ -75,6 +96,7 @@ class LegalAidProvider(BaseModel):
     email: EmailStr
     expertise_area: str
     status: str
+    profile_image: Optional[str] = None
 
 class CreateLegalAid(LegalAidProvider):
     password_hash: Optional[str] = None  # optional now, because Google users may not have a password
