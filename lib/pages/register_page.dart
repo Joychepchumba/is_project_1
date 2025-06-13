@@ -35,7 +35,7 @@ class _RegisterPageState extends State<RegisterPage> {
   bool _isLoading = false;
 
   static const String API_BASE_URL =
-      'https://ed2a-2c0f-fe38-2017-380-a41c-62d8-659-2225.ngrok-free.app';
+      'https://b72e-197-136-185-70.ngrok-free.app';
 
   String get roleString {
     return selectedRole == 5
