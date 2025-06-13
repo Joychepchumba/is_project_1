@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:is_project_1/components/custom_bootom_navbar.dart';
 
+import 'package:is_project_1/models/profile_response.dart';
+import 'package:is_project_1/services/api_service.dart';
+import 'package:url_launcher/url_launcher.dart';
+
 class UserHomepage extends StatefulWidget {
   const UserHomepage({super.key});
 
@@ -9,6 +13,51 @@ class UserHomepage extends StatefulWidget {
 }
 
 class _UserHomepageState extends State<UserHomepage> {
+  ProfileResponse? profile;
+  List<EmergencyContact> emergencyContacts = [];
+  bool isLoading = true;
+  String? error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfileData();
+  }
+
+  Future<void> _loadProfileData() async {
+    try {
+      setState(() {
+        isLoading = true;
+        error = null;
+      });
+
+      // Load profile data
+      final profileData = await ApiService.getProfile();
+
+      List<EmergencyContact> contacts = [];
+      // Only load emergency contacts for role_id == 5
+      if (profileData.roleId == 5) {
+        try {
+          contacts = await ApiService.getEmergencyContacts();
+        } catch (e) {
+          // Emergency contacts are optional, don't fail the whole page
+          print('Failed to load emergency contacts: $e');
+        }
+      }
+
+      setState(() {
+        profile = profileData;
+        emergencyContacts = contacts;
+        isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        error = e.toString();
+        isLoading = false;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -157,10 +206,36 @@ class _UserHomepageState extends State<UserHomepage> {
               ),
               const SizedBox(width: 16),
               Expanded(
-                child: _buildQuickActionItem(
-                  Icons.phone_outlined,
-                  'Emergency Call',
-                  Colors.red,
+                child: ElevatedButton(
+                  onPressed: () async {
+                    if (emergencyContacts.isNotEmpty) {
+                      final EmergencyContact contact = emergencyContacts.first;
+                      final Uri url = Uri(
+                        scheme: 'tel',
+                        path: contact.contactNumber.replaceAll(
+                          RegExp(r'[^\d+]'),
+                          '',
+                        ), // Clean the number
+                      );
+
+                      try {
+                        if (await canLaunchUrl(url)) {
+                          await launchUrl(url);
+                        } else {
+                          print('Cannot launch phone app');
+                        }
+                      } catch (e) {
+                        print('Error launching phone call: $e');
+                      }
+                    } else {
+                      print('No emergency contacts available');
+                    }
+                  },
+                  child: _buildQuickActionItem(
+                    Icons.phone_outlined,
+                    'Emergency Call',
+                    Colors.red,
+                  ),
                 ),
               ),
             ],

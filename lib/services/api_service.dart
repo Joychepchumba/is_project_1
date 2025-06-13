@@ -4,8 +4,7 @@ import 'package:is_project_1/models/profile_response.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
-  static const String baseUrl =
-      'https://ed2a-2c0f-fe38-2017-380-a41c-62d8-659-2225.ngrok-free.app';
+  static const String baseUrl = 'https://b72e-197-136-185-70.ngrok-free.app';
 
   // Get stored token
   static Future<String?> getToken() async {

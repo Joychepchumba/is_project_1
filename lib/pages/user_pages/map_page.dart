@@ -1,84 +1,75 @@
-import 'package:flutter/material.dart';
-import 'package:is_project_1/components/custom_bootom_navbar.dart';
+// ignore_for_file: public_member_api_docs, sort_constructors_first
+import 'dart:async';
 
-class MapPage extends StatelessWidget {
-  const MapPage({super.key});
+import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:geolocator/geolocator.dart' as gl;
+import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' as mp;
+
+import 'package:is_project_1/components/custom_bootom_navbar.dart';
+import 'package:share_plus/share_plus.dart';
+
+class MapPage extends StatefulWidget {
+  const MapPage({Key? key}) : super(key: key);
+
+  @override
+  State<MapPage> createState() => _MapPageState();
+}
+
+class _MapPageState extends State<MapPage> {
+  mp.MapboxMap? mapboxMapController;
+  StreamSubscription? userPositionStream;
+  bool isMapReady = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeMapbox();
+    _setupPositionTracking();
+  }
+
+  @override
+  void dispose() {
+    userPositionStream?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _initializeMapbox() async {
+    try {
+      // Make sure the access token is set
+      final token = dotenv.env['MAPBOX_ACCESS_TOKEN'];
+      if (token == null || token.isEmpty) {
+        debugPrint('Error: MAPBOX_ACCESS_TOKEN not found in .env file');
+        return;
+      }
+
+      // Set the access token
+      mp.MapboxOptions.setAccessToken(token);
+      debugPrint('Mapbox token initialized successfully');
+    } catch (e) {
+      debugPrint('Error initializing Mapbox: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'SafeZone',
-          style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
-        ),
-        backgroundColor: Colors.white,
-        elevation: 0,
-        actions: [
-          Stack(
-            children: [
-              IconButton(
-                icon: const Icon(
-                  Icons.notifications_outlined,
-                  color: Colors.black87,
-                ),
-                onPressed: () {},
-              ),
-              Positioned(
-                right: 8,
-                top: 8,
-                child: Container(
-                  width: 8,
-                  height: 8,
-                  decoration: const BoxDecoration(
-                    color: Colors.red,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
       body: Stack(
         children: [
-          // Map Background
-          Container(
-            width: double.infinity,
-            height: double.infinity,
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Color(0xFFE3F2FD),
-                  Color(0xFFBBDEFB),
-                  Color(0xFF90CAF9),
-                ],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-              ),
+          mp.MapWidget(
+            key: const ValueKey("mapWidget"),
+            onMapCreated: _onMapCreated,
+            styleUri: mp.MapboxStyles.DARK,
+            cameraOptions: mp.CameraOptions(
+              center: mp.Point(
+                coordinates: mp.Position(0, 0),
+              ), // Default center
+              zoom: 10.0,
             ),
-            child: CustomPaint(painter: MapGridPainter()),
           ),
-
-          // Map Markers
-          const Positioned(top: 150, left: 50, child: DangerZoneMarker()),
-          const Positioned(top: 200, right: 80, child: UserLocationMarker()),
-          const Positioned(top: 120, right: 60, child: PoliceStationMarker()),
-          const Positioned(bottom: 200, left: 40, child: PoliceStationMarker()),
-          const Positioned(bottom: 160, left: 80, child: DangerZoneMarker()),
-          const Positioned(bottom: 180, right: 100, child: DangerZoneMarker()),
-          const Positioned(
-            bottom: 240,
-            right: 40,
-            child: PoliceStationMarker(),
-          ),
-
-          // Legend
-          const Positioned(top: 20, right: 20, child: MapLegend()),
-
-          // Share Location Card
+          if (!isMapReady) const Center(child: CircularProgressIndicator()),
           Positioned(
-            bottom: 80,
+            bottom: 100,
             left: 16,
             right: 16,
             child: _buildShareLocationCard(),
@@ -87,6 +78,114 @@ class MapPage extends StatelessWidget {
       ),
       bottomNavigationBar: const CustomBottomNavigationBar(currentIndex: 2),
     );
+  }
+
+  void _onMapCreated(mp.MapboxMap controller) async {
+    debugPrint('Map created successfully');
+    setState(() {
+      mapboxMapController = controller;
+      isMapReady = true;
+    });
+
+    try {
+      // Enable location component
+      await mapboxMapController?.location.updateSettings(
+        mp.LocationComponentSettings(
+          enabled: true,
+          pulsingEnabled: true,
+          showAccuracyRing: true,
+        ),
+      );
+      debugPrint('Location component enabled');
+    } catch (e) {
+      debugPrint('Error enabling location component: $e');
+    }
+  }
+
+  Future<void> _setupPositionTracking() async {
+    try {
+      bool serviceEnabled;
+      gl.LocationPermission permission;
+
+      serviceEnabled = await gl.Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        debugPrint('Location services are disabled');
+        return;
+      }
+
+      permission = await gl.Geolocator.checkPermission();
+      if (permission == gl.LocationPermission.denied) {
+        permission = await gl.Geolocator.requestPermission();
+        if (permission == gl.LocationPermission.denied) {
+          debugPrint('Location permissions are denied');
+          return;
+        }
+      }
+
+      if (permission == gl.LocationPermission.deniedForever) {
+        debugPrint('Location permissions are permanently denied');
+        return;
+      }
+
+      gl.LocationSettings locationSettings = const gl.LocationSettings(
+        accuracy: gl.LocationAccuracy.high,
+        distanceFilter: 10, // Reduced for more frequent updates
+      );
+
+      userPositionStream?.cancel();
+      userPositionStream =
+          gl.Geolocator.getPositionStream(
+            locationSettings: locationSettings,
+          ).listen(
+            (gl.Position position) {
+              debugPrint(
+                'Position updated: ${position.latitude}, ${position.longitude}',
+              );
+
+              if (mapboxMapController != null && isMapReady) {
+                mapboxMapController?.setCamera(
+                  mp.CameraOptions(
+                    zoom: 15.0,
+                    center: mp.Point(
+                      coordinates: mp.Position(
+                        position.longitude,
+                        position.latitude,
+                      ),
+                    ),
+                  ),
+                );
+              }
+            },
+            onError: (error) {
+              debugPrint('Error getting position: $error');
+            },
+          );
+
+      debugPrint('Position tracking setup completed');
+    } catch (e) {
+      debugPrint('Error setting up position tracking: $e');
+    }
+  }
+
+  Future<void> _shareCurrentLocation() async {
+    try {
+      final position = await gl.Geolocator.getCurrentPosition();
+
+      final latitude = position.latitude;
+      final longitude = position.longitude;
+
+      final googleMapsUrl =
+          'https://www.google.com/maps/search/?api=1&query=$latitude,$longitude';
+
+      await Share.share('Here is my current location: $googleMapsUrl');
+
+      debugPrint('Location shared successfully');
+    } catch (e) {
+      debugPrint('Error sharing location: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to share location. Please try again.')),
+      );
+    }
   }
 
   Widget _buildShareLocationCard() {
@@ -138,9 +237,7 @@ class MapPage extends StatelessWidget {
           ),
           const SizedBox(width: 16),
           ElevatedButton(
-            onPressed: () {
-              // Handle share location
-            },
+            onPressed: _shareCurrentLocation,
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.blue,
               shape: RoundedRectangleBorder(
@@ -160,181 +257,4 @@ class MapPage extends StatelessWidget {
       ),
     );
   }
-}
-
-class MapLegend extends StatelessWidget {
-  const MapLegend({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 6,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: const Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Legend',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
-            ),
-          ),
-          SizedBox(height: 12),
-          LegendItem(
-            color: Colors.blue,
-            icon: Icons.circle,
-            label: 'Your Location',
-          ),
-          SizedBox(height: 8),
-          LegendItem(
-            color: Colors.red,
-            icon: Icons.warning,
-            label: 'Danger Zone',
-          ),
-          SizedBox(height: 8),
-          LegendItem(
-            color: Colors.green,
-            icon: Icons.shield,
-            label: 'Police Station',
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class LegendItem extends StatelessWidget {
-  final Color color;
-  final IconData icon;
-  final String label;
-
-  const LegendItem({
-    super.key,
-    required this.color,
-    required this.icon,
-    required this.label,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, color: color, size: 12),
-        const SizedBox(width: 8),
-        Text(
-          label,
-          style: const TextStyle(fontSize: 12, color: Colors.black87),
-        ),
-      ],
-    );
-  }
-}
-
-class UserLocationMarker extends StatelessWidget {
-  const UserLocationMarker({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 16,
-      height: 16,
-      decoration: BoxDecoration(
-        color: Colors.blue,
-        shape: BoxShape.circle,
-        border: Border.all(color: Colors.white, width: 2),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.blue.withOpacity(0.3),
-            spreadRadius: 2,
-            blurRadius: 4,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class DangerZoneMarker extends StatelessWidget {
-  const DangerZoneMarker({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 24,
-      height: 24,
-      decoration: BoxDecoration(
-        color: Colors.red,
-        shape: BoxShape.circle,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.red.withOpacity(0.3),
-            spreadRadius: 2,
-            blurRadius: 4,
-          ),
-        ],
-      ),
-      child: const Icon(Icons.warning, color: Colors.white, size: 14),
-    );
-  }
-}
-
-class PoliceStationMarker extends StatelessWidget {
-  const PoliceStationMarker({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 24,
-      height: 24,
-      decoration: BoxDecoration(
-        color: Colors.green,
-        shape: BoxShape.circle,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.green.withOpacity(0.3),
-            spreadRadius: 2,
-            blurRadius: 4,
-          ),
-        ],
-      ),
-      child: const Icon(Icons.shield, color: Colors.white, size: 14),
-    );
-  }
-}
-
-class MapGridPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.white.withOpacity(0.3)
-      ..strokeWidth = 1;
-
-    // Draw vertical lines
-    for (double x = 0; x < size.width; x += 40) {
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
-    }
-
-    // Draw horizontal lines
-    for (double y = 0; y < size.height; y += 40) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
