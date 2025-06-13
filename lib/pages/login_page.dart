@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:is_project_1/components/app_logo.dart';
 import 'package:is_project_1/components/my_button.dart';
 import 'package:is_project_1/components/my_textfield.dart';
-import 'package:is_project_1/components/square_tile.dart';
 import 'package:is_project_1/pages/admin_pages/admin_homepage.dart';
 import 'package:is_project_1/pages/legal_aid_pages/legalaid_homepage.dart';
 import 'package:is_project_1/pages/register_page.dart';

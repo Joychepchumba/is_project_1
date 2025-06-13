@@ -7,12 +7,12 @@ class MyTextfield extends StatelessWidget {
   final Widget? suffixIcon;
 
   const MyTextfield({
-    Key? key,
+    super.key,
     required this.controller,
     required this.hintText,
     this.obscureText = false,
     this.suffixIcon,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

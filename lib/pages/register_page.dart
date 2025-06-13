@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:is_project_1/components/my_textfield.dart';
-import 'package:is_project_1/components/square_tile.dart';
 import 'package:is_project_1/components/image_picker_widget.dart';
 import 'package:is_project_1/pages/login_page.dart';
 

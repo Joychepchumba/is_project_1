@@ -7,12 +7,12 @@ import 'package:is_project_1/pages/user_pages/user_legalaid.dart';
 class CustomBottomNavigationBar extends StatelessWidget {
   final dynamic currentIndex;
 
-  const CustomBottomNavigationBar({Key? key, required this.currentIndex})
-    : super(key: key);
+  const CustomBottomNavigationBar({super.key, required this.currentIndex});
 
   void _onItemTapped(BuildContext context, int index) {
-    if (currentIndex == index)
+    if (currentIndex == index) {
       return; // Don't navigate if already on the same page
+    }
 
     // Navigate to the appropriate page based on index
     switch (index) {

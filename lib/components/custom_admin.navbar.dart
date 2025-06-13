@@ -7,12 +7,12 @@ import 'package:is_project_1/pages/profile_page.dart';
 class CustomAdminNavigationBar extends StatelessWidget {
   final int currentIndex;
 
-  const CustomAdminNavigationBar({Key? key, required this.currentIndex})
-    : super(key: key);
+  const CustomAdminNavigationBar({super.key, required this.currentIndex});
 
   void _onItemTapped(BuildContext context, int index) {
-    if (currentIndex == index)
+    if (currentIndex == index) {
       return; // Don't navigate if already on the same page
+    }
 
     // Navigate to the appropriate page based on index
     switch (index) {

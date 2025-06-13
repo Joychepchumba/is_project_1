@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:is_project_1/components/custom_admin.navbar.dart';
 
 class VerifyProvidersPage extends StatelessWidget {
-  const VerifyProvidersPage({Key? key}) : super(key: key);
+  const VerifyProvidersPage({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -217,7 +217,7 @@ class VerifyProvidersPage extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 16),
-            Container(
+            SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: () {

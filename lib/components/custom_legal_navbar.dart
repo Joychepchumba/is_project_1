@@ -8,12 +8,12 @@ import 'package:is_project_1/pages/profile_page.dart';
 class CustomLegalNavigationBar extends StatelessWidget {
   final int currentIndex;
 
-  const CustomLegalNavigationBar({Key? key, required this.currentIndex})
-    : super(key: key);
+  const CustomLegalNavigationBar({super.key, required this.currentIndex});
 
   void _onItemTapped(BuildContext context, int index) {
-    if (currentIndex == index)
+    if (currentIndex == index) {
       return; // Don't navigate if already on the same page
+    }
 
     // Navigate to the appropriate page based on index
     switch (index) {

@@ -336,7 +336,7 @@ class UserLegalaid extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          ...tips.map((tip) => _buildTipItem(tip, color)).toList(),
+          ...tips.map((tip) => _buildTipItem(tip, color)),
         ],
       ),
     );

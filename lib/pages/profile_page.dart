@@ -355,7 +355,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                     (contact) =>
                                         _buildEmergencyContact(contact),
                                   )
-                                  .toList(),
+                                  ,
                           ],
 
                           const SizedBox(height: 40),
