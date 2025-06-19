@@ -24,7 +24,7 @@ class _LoginPageState extends State<LoginPage> {
   bool _obscurePassword = true;
 
   // Your deployed Vercel API URL for now we'll use the local Ip cause vercel did that thing:(
-  static const String baseUrl = 'https://8841-156-0-233-53.ngrok-free.app';
+  static const String baseUrl = 'https://14b1-156-0-232-51.ngrok-free.app';
 
   Map<String, dynamic> decodeJWT(String token) {
     final parts = token.split('.');

@@ -16,6 +16,7 @@ from dotenv import load_dotenv
 import os
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from safety_tips_page import router as safety_tips_router 
 
 app = FastAPI()
 
@@ -26,7 +27,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
+app.include_router(safety_tips_router)
 
 load_dotenv()
 
@@ -444,3 +445,7 @@ def get_profile(token: str = Depends(jwt_bearer), db: Session = Depends(get_db))
     else:
         print(f"DEBUG: Unknown user_type: {user_type}")
         raise HTTPException(status_code=400, detail="Invalid user type")
+    
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)  

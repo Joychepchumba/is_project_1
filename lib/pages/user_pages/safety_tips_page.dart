@@ -12,8 +12,8 @@ class SafetyTipsPage extends StatefulWidget {
 
 class _SafetyTipsPageState extends State<SafetyTipsPage> {
   List<Map<String, dynamic>> safetyTips = [];
-  final int _selectedIndex = 2; // Set default index for navigation
-  final String baseUrl = 'http://your-local-ip:8000'; // Replace with your server's actual IP
+  final int _selectedIndex = 2;
+  final String baseUrl = 'https://14b1-156-0-232-51.ngrok-free.app';
 
   @override
   void initState() {
@@ -22,7 +22,7 @@ class _SafetyTipsPageState extends State<SafetyTipsPage> {
   }
 
   Future<void> fetchSafetyTips() async {
-    final response = await http.get(Uri.parse('$baseUrl/get_tips/'));
+    final response = await http.get(Uri.parse('$baseUrl/get_tips'));
     if (response.statusCode == 200) {
       setState(() {
         safetyTips = List<Map<String, dynamic>>.from(jsonDecode(response.body));
@@ -79,13 +79,13 @@ class _SafetyTipsPageState extends State<SafetyTipsPage> {
       "title": title,
       "content": content,
       "category": category,
-      "submitted_by": "anonymous",  // You can replace this with the logged-in user
+      "submitted_by": "anonymous",
       "submitted_by_role": "user",
       "status": "pending"
     };
 
     final response = await http.post(
-      Uri.parse('$baseUrl/upload_tip/'),
+      Uri.parse('$baseUrl/upload_tip'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(tipData),
     );
@@ -110,20 +110,63 @@ class _SafetyTipsPageState extends State<SafetyTipsPage> {
                   margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
                   child: ListTile(
                     title: Text(safetyTips[index]['title']),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(safetyTips[index]['content']),
-                        Text('Category: ${safetyTips[index]['category']}', style: const TextStyle(fontSize: 12, fontStyle: FontStyle.italic)),
-                      ],
+                    subtitle: Text(
+                      'Category: ${safetyTips[index]['category']}',
+                      style: const TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
                     ),
+                    onTap: () {
+                      showModalBottomSheet(
+                        context: context,
+                        isScrollControlled: true,
+                        shape: const RoundedRectangleBorder(
+                          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                        ),
+                        builder: (context) => DraggableScrollableSheet(
+                          expand: false,
+                          builder: (context, scrollController) => SingleChildScrollView(
+                            controller: scrollController,
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Center(
+                                  child: Container(
+                                    width: 40,
+                                    height: 4,
+                                    margin: const EdgeInsets.only(bottom: 12),
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey[300],
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                  ),
+                                ),
+                                Text(
+                                  safetyTips[index]['title'],
+                                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                                ),
+                                const SizedBox(height: 12),
+                                Text(
+                                  safetyTips[index]['content'],
+                                  style: const TextStyle(fontSize: 16),
+                                ),
+                                const SizedBox(height: 20),
+                                Text(
+                                  'Category: ${safetyTips[index]['category']}',
+                                  style: const TextStyle(fontStyle: FontStyle.italic, fontSize: 12),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    },
                   ),
                 );
               },
             ),
       floatingActionButton: FloatingActionButton(
         onPressed: _showAddTipDialog,
-        backgroundColor: Colors.blueAccent,
+        backgroundColor: const Color(0xFF4FABCB),
         child: const Icon(Icons.add),
       ),
       bottomNavigationBar: CustomBottomNavigationBar(currentIndex: _selectedIndex),

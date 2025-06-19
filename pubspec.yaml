@@ -35,15 +35,11 @@ dependencies:
   supabase_flutter: ^2.0.0
   image_picker: ^1.0.4
   shared_preferences: ^2.2.2
-<<<<<<< HEAD
   fl_chart: ^1.0.0
-=======
-  fl_chart: ^0.68.0
   mapbox_maps_flutter: ^2.8.0
   geolocator: ^14.0.1
   flutter_dotenv: ^5.2.1
-  share_plus: ^7.2.1
->>>>>>> 3ca0ef866114252a8c499d57b415072c9e9cd465
+  share_plus: ^11.0.0
 
   cupertino_icons: ^1.0.8
   url_launcher: ^6.3.1

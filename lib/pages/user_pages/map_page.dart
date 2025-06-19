@@ -10,7 +10,7 @@ import 'package:is_project_1/components/custom_bootom_navbar.dart';
 import 'package:share_plus/share_plus.dart';
 
 class MapPage extends StatefulWidget {
-  const MapPage({Key? key}) : super(key: key);
+  const MapPage({super.key});
 
   @override
   State<MapPage> createState() => _MapPageState();
