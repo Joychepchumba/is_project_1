@@ -1,9 +1,160 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:http/http.dart' as http;
 import 'package:is_project_1/components/custom_admin.navbar.dart';
 
-class AdminAnalyticsPage extends StatelessWidget {
+class UserDistribution {
+  final int totalUsers;
+  final int legalAidProviders;
+  final int admins;
+
+  UserDistribution({
+    required this.totalUsers,
+    required this.legalAidProviders,
+    required this.admins,
+  });
+
+  factory UserDistribution.fromJson(Map<String, dynamic> json) {
+    return UserDistribution(
+      totalUsers: json['total_users'] ?? 0,
+      legalAidProviders: json['legal_aid_providers'] ?? 0,
+      admins: json['admins'] ?? 0,
+    );
+  }
+}
+
+class DangerZoneDataPoint {
+  final String location;
+  final int incidentCount;
+
+  DangerZoneDataPoint({required this.location, required this.incidentCount});
+
+  factory DangerZoneDataPoint.fromJson(Map<String, dynamic> json) {
+    return DangerZoneDataPoint(
+      location: json['location_name'] ?? '',
+      incidentCount: json['reported_count'] ?? 0,
+    );
+  }
+}
+
+class DangerZonesData {
+  final List<DangerZoneDataPoint> data;
+  final int totalIncidents;
+
+  DangerZonesData({required this.data, required this.totalIncidents});
+
+  factory DangerZonesData.fromJson(Map<String, dynamic> json) {
+    var list = json['data'] as List? ?? [];
+    List<DangerZoneDataPoint> dataPoints = list
+        .map((i) => DangerZoneDataPoint.fromJson(i))
+        .toList();
+
+    return DangerZonesData(
+      data: dataPoints,
+      totalIncidents: json['total_incidents'] ?? 0,
+    );
+  }
+}
+
+class AdminAnalyticsPage extends StatefulWidget {
   const AdminAnalyticsPage({super.key});
+
+  @override
+  State<AdminAnalyticsPage> createState() => _AdminAnalyticsPageState();
+}
+
+class _AdminAnalyticsPageState extends State<AdminAnalyticsPage> {
+  bool isLoading = true;
+  String? error;
+
+  UserDistribution? userDistribution;
+  DangerZonesData? dangerZonesData;
+
+  static const String baseUrl = 'https://423c-197-136-185-70.ngrok-free.app';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAnalyticsData();
+  }
+
+  Future<void> _loadAnalyticsData() async {
+    try {
+      setState(() {
+        isLoading = true;
+        error = null;
+      });
+
+      // Fetch all analytics data
+      await Future.wait([_fetchUserDistribution(), _fetchDangerZonesData()]);
+
+      setState(() {
+        isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        isLoading = false;
+        error = 'Failed to load analytics data: ${e.toString()}';
+      });
+    }
+  }
+
+  Future<void> _fetchUserDistribution() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/analytics/user-distribution'),
+        headers: {
+          'Content-Type': 'application/json',
+          // Add authorization header if needed
+          // 'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(response.body);
+        userDistribution = UserDistribution.fromJson(data);
+      } else {
+        throw Exception(
+          'Failed to fetch user distribution: ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      print('Error fetching user distribution: $e');
+      // Use mock data as fallback
+      userDistribution = UserDistribution(
+        totalUsers: 45,
+        legalAidProviders: 35,
+        admins: 20,
+      );
+    }
+  }
+
+  Future<void> _fetchDangerZonesData() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/analytics/danger-zones'),
+        headers: {
+          'Content-Type': 'application/json',
+          // Add authorization header if needed
+          // 'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(response.body);
+        dangerZonesData = DangerZonesData.fromJson(data);
+      } else {
+        throw Exception(
+          'Failed to fetch danger zones data: ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      print('Error fetching danger zones data: $e');
+      // Use mock data as fallback
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -39,6 +190,10 @@ class AdminAnalyticsPage extends StatelessWidget {
         ),
         actions: [
           IconButton(
+            icon: const Icon(Icons.refresh, color: Colors.black),
+            onPressed: _loadAnalyticsData,
+          ),
+          IconButton(
             icon: const Icon(Icons.notifications_outlined, color: Colors.black),
             onPressed: () {},
           ),
@@ -50,29 +205,55 @@ class AdminAnalyticsPage extends StatelessWidget {
           const SizedBox(width: 16),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Usage Metrics Card
-            _buildUsageMetricsCard(),
-            const SizedBox(height: 20),
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : error != null
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.error_outline, size: 64, color: Colors.grey[400]),
+                  const SizedBox(height: 16),
+                  Text(error!, style: const TextStyle(color: Colors.red)),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: _loadAnalyticsData,
+                    child: const Text('Retry'),
+                  ),
+                ],
+              ),
+            )
+          : RefreshIndicator(
+              onRefresh: _loadAnalyticsData,
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Usage Metrics Card
+                    if (userDistribution != null) _buildUsageMetricsCard(),
+                    const SizedBox(height: 20),
 
-            // Revenue Generated Card
-            _buildRevenueCard(),
-            const SizedBox(height: 20),
+                    // Revenue Generated Card
+                    _buildRevenueCard(),
+                    const SizedBox(height: 20),
 
-            // Frequent Danger Zones Card
-            _buildDangerZonesCard(),
-          ],
-        ),
-      ),
+                    // Frequent Danger Zones Card
+                    if (dangerZonesData != null) _buildDangerZonesCard(),
+                  ],
+                ),
+              ),
+            ),
       bottomNavigationBar: const CustomAdminNavigationBar(currentIndex: 2),
     );
   }
 
   Widget _buildUsageMetricsCard() {
+    final total =
+        userDistribution!.totalUsers +
+        userDistribution!.legalAidProviders +
+        userDistribution!.admins;
+
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -100,6 +281,15 @@ class AdminAnalyticsPage extends StatelessWidget {
                   'Usage Metrics',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
                 ),
+                const Spacer(),
+                Text(
+                  'Total: $total',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.grey,
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 8),
@@ -116,22 +306,37 @@ class AdminAnalyticsPage extends StatelessWidget {
                   centerSpaceRadius: 60,
                   sections: [
                     PieChartSectionData(
-                      color: Colors.blue,
-                      value: 45,
-                      title: '',
+                      color: const Color.fromARGB(255, 244, 6, 85),
+                      value: userDistribution!.totalUsers.toDouble(),
+                      title: '${userDistribution!.totalUsers}',
                       radius: 50,
+                      titleStyle: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
                     ),
                     PieChartSectionData(
                       color: Colors.lightBlue,
-                      value: 35,
-                      title: '',
+                      value: userDistribution!.legalAidProviders.toDouble(),
+                      title: '${userDistribution!.legalAidProviders}',
                       radius: 50,
+                      titleStyle: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
                     ),
                     PieChartSectionData(
-                      color: Colors.grey[300]!,
-                      value: 20,
-                      title: '',
+                      color: const Color.fromARGB(255, 243, 174, 255),
+                      value: userDistribution!.admins.toDouble(),
+                      title: '${userDistribution!.admins}',
                       radius: 50,
+                      titleStyle: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black,
+                      ),
                     ),
                   ],
                 ),
@@ -141,9 +346,18 @@ class AdminAnalyticsPage extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildLegendItem('Legal Aid Providers', Colors.blue),
-                _buildLegendItem('Users', Colors.lightBlue),
-                _buildLegendItem('Admin', Colors.grey[300]!),
+                _buildLegendItem(
+                  'Users (${userDistribution!.totalUsers})',
+                  const Color.fromARGB(255, 244, 6, 85),
+                ),
+                _buildLegendItem(
+                  'Legal Aid (${userDistribution!.legalAidProviders})',
+                  Colors.lightBlue,
+                ),
+                _buildLegendItem(
+                  'Admin (${userDistribution!.admins})',
+                  const Color.fromARGB(255, 243, 174, 255),
+                ),
               ],
             ),
           ],
@@ -312,6 +526,18 @@ class AdminAnalyticsPage extends StatelessWidget {
   }
 
   Widget _buildDangerZonesCard() {
+    // Get top 10 danger zones sorted by incident count
+    final sortedData = List.from(dangerZonesData!.data)
+      ..sort((a, b) => b.incidentCount.compareTo(a.incidentCount));
+    final top10Data = sortedData.take(10).toList();
+
+    final maxIncidents = top10Data.isNotEmpty
+        ? top10Data.first.incidentCount.toDouble()
+        : 0.0;
+
+    // Calculate chart width based on number of items (minimum width per bar)
+    final chartWidth = (top10Data.length * 80.0).clamp(300.0, double.infinity);
+
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -331,156 +557,188 @@ class AdminAnalyticsPage extends StatelessWidget {
                   child: const Icon(Icons.warning, color: Colors.red, size: 20),
                 ),
                 const SizedBox(width: 12),
-                const Text(
-                  'Frequent Danger Zones',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                const Expanded(
+                  child: Text(
+                    'Top 10 Frequent Danger Zones',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Total: ${dangerZonesData!.totalIncidents}',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.red,
+                  ),
                 ),
               ],
             ),
             const SizedBox(height: 8),
             const Text(
-              'Incident reports by location',
+              'Top incident reports by location (showing highest 10)',
               style: TextStyle(color: Colors.grey, fontSize: 14),
             ),
             const SizedBox(height: 24),
-            SizedBox(
-              height: 200,
-              child: BarChart(
-                BarChartData(
-                  alignment: BarChartAlignment.spaceAround,
-                  maxY: 60,
-                  barTouchData: BarTouchData(enabled: false),
-                  titlesData: FlTitlesData(
-                    show: true,
-                    bottomTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        getTitlesWidget: (value, meta) {
-                          const locations = [
-                            'Central Park',
-                            'East Side',
-                            'West End',
-                            'North Ave',
-                            'South St',
-                          ];
-                          if (value.toInt() < locations.length) {
-                            return Padding(
-                              padding: const EdgeInsets.only(top: 8),
-                              child: Transform.rotate(
-                                angle: -0.5,
-                                child: Text(
-                                  locations[value.toInt()],
-                                  style: const TextStyle(fontSize: 9),
+            // Scrollable chart container
+            Container(
+              height: 280, // Increased height to accommodate rotated labels
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Container(
+                  width: chartWidth,
+                  height: 280,
+                  child: BarChart(
+                    BarChartData(
+                      alignment: BarChartAlignment.spaceEvenly,
+                      maxY:
+                          maxIncidents +
+                          (maxIncidents * 0.15), // Add 15% padding to top
+                      barTouchData: BarTouchData(
+                        enabled: true,
+                        touchTooltipData: BarTouchTooltipData(
+                          getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                            if (groupIndex < top10Data.length) {
+                              return BarTooltipItem(
+                                '${top10Data[groupIndex].location}\n${rod.toY.toInt()} incidents',
+                                const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
                                 ),
-                              ),
-                            );
-                          }
-                          return const Text('');
-                        },
+                              );
+                            }
+                            return null;
+                          },
+                        ),
                       ),
-                    ),
-                    leftTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        getTitlesWidget: (value, meta) {
-                          return Text(
-                            value.toInt().toString(),
-                            style: const TextStyle(fontSize: 10),
+                      titlesData: FlTitlesData(
+                        show: true,
+                        bottomTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            reservedSize:
+                                80, // Increased space for rotated labels
+                            getTitlesWidget: (value, meta) {
+                              if (value.toInt() < top10Data.length) {
+                                final location =
+                                    top10Data[value.toInt()].location;
+                                // Truncate long location names
+                                final displayText = location.length > 15
+                                    ? '${location.substring(0, 12)}...'
+                                    : location;
+
+                                return Padding(
+                                  padding: const EdgeInsets.only(top: 8),
+                                  child: Transform.rotate(
+                                    angle:
+                                        -0.8, // Slightly more rotation for better readability
+                                    child: Text(
+                                      displayText,
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
+                                );
+                              }
+                              return const Text('');
+                            },
+                          ),
+                        ),
+                        leftTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            reservedSize: 40,
+                            getTitlesWidget: (value, meta) {
+                              return Text(
+                                value.toInt().toString(),
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                        topTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),
+                        ),
+                        rightTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),
+                        ),
+                      ),
+                      gridData: FlGridData(
+                        show: true,
+                        drawVerticalLine: false,
+                        horizontalInterval: maxIncidents > 50 ? 10 : 5,
+                        getDrawingHorizontalLine: (value) {
+                          return FlLine(
+                            color: Colors.grey[300]!,
+                            strokeWidth: 0.8,
                           );
                         },
                       ),
-                    ),
-                    topTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false),
-                    ),
-                    rightTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false),
+                      borderData: FlBorderData(show: false),
+                      barGroups: top10Data.asMap().entries.map((entry) {
+                        // Color gradient based on incident count
+                        final intensity =
+                            entry.value.incidentCount / maxIncidents;
+                        final barColor = Color.lerp(
+                          Colors.red[300]!,
+                          Colors.red[800]!,
+                          intensity,
+                        )!;
+
+                        return BarChartGroupData(
+                          x: entry.key,
+                          barRods: [
+                            BarChartRodData(
+                              toY: entry.value.incidentCount.toDouble(),
+                              color: barColor,
+                              width:
+                                  35, // Slightly wider bars for better visibility
+                              borderRadius: const BorderRadius.only(
+                                topLeft: Radius.circular(6),
+                                topRight: Radius.circular(6),
+                              ),
+                              // Add a subtle gradient effect
+                              gradient: LinearGradient(
+                                begin: Alignment.bottomCenter,
+                                end: Alignment.topCenter,
+                                colors: [barColor.withOpacity(0.8), barColor],
+                              ),
+                            ),
+                          ],
+                        );
+                      }).toList(),
                     ),
                   ),
-                  gridData: FlGridData(
-                    show: true,
-                    drawVerticalLine: false,
-                    horizontalInterval: 10,
-                    getDrawingHorizontalLine: (value) {
-                      return FlLine(color: Colors.grey[300]!, strokeWidth: 1);
-                    },
-                  ),
-                  borderData: FlBorderData(show: false),
-                  barGroups: [
-                    BarChartGroupData(
-                      x: 0,
-                      barRods: [
-                        BarChartRodData(
-                          toY: 52,
-                          color: Colors.red,
-                          width: 25,
-                          borderRadius: const BorderRadius.only(
-                            topLeft: Radius.circular(4),
-                            topRight: Radius.circular(4),
-                          ),
-                        ),
-                      ],
-                    ),
-                    BarChartGroupData(
-                      x: 1,
-                      barRods: [
-                        BarChartRodData(
-                          toY: 38,
-                          color: Colors.red,
-                          width: 25,
-                          borderRadius: const BorderRadius.only(
-                            topLeft: Radius.circular(4),
-                            topRight: Radius.circular(4),
-                          ),
-                        ),
-                      ],
-                    ),
-                    BarChartGroupData(
-                      x: 2,
-                      barRods: [
-                        BarChartRodData(
-                          toY: 45,
-                          color: Colors.red,
-                          width: 25,
-                          borderRadius: const BorderRadius.only(
-                            topLeft: Radius.circular(4),
-                            topRight: Radius.circular(4),
-                          ),
-                        ),
-                      ],
-                    ),
-                    BarChartGroupData(
-                      x: 3,
-                      barRods: [
-                        BarChartRodData(
-                          toY: 28,
-                          color: Colors.red,
-                          width: 25,
-                          borderRadius: const BorderRadius.only(
-                            topLeft: Radius.circular(4),
-                            topRight: Radius.circular(4),
-                          ),
-                        ),
-                      ],
-                    ),
-                    BarChartGroupData(
-                      x: 4,
-                      barRods: [
-                        BarChartRodData(
-                          toY: 15,
-                          color: Colors.red,
-                          width: 25,
-                          borderRadius: const BorderRadius.only(
-                            topLeft: Radius.circular(4),
-                            topRight: Radius.circular(4),
-                          ),
-                        ),
-                      ],
+                ),
+              ),
+            ),
+            // Add a small indicator showing this is scrollable
+            if (top10Data.length >
+                3) // Only show if there are enough items to scroll
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.swipe_right, size: 16, color: Colors.grey[400]),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Swipe to view all zones',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[500],
+                        fontStyle: FontStyle.italic,
+                      ),
                     ),
                   ],
                 ),
               ),
-            ),
           ],
         ),
       ),
@@ -497,7 +755,11 @@ class AdminAnalyticsPage extends StatelessWidget {
           decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
         const SizedBox(width: 6),
-        Text(label, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 11, color: Colors.grey),
+          overflow: TextOverflow.ellipsis,
+        ),
       ],
     );
   }

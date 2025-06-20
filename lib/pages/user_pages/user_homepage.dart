@@ -2,8 +2,33 @@ import 'package:flutter/material.dart';
 import 'package:is_project_1/components/custom_bootom_navbar.dart';
 
 import 'package:is_project_1/models/profile_response.dart';
+import 'package:is_project_1/pages/user_pages/map_page.dart';
+import 'package:is_project_1/pages/user_pages/user_legalaid.dart';
 import 'package:is_project_1/services/api_service.dart';
 import 'package:url_launcher/url_launcher.dart';
+
+class PoliceLocation {
+  final String name;
+  final double latitude;
+  final double longitude;
+  final String contactNumber;
+
+  PoliceLocation({
+    required this.name,
+    required this.latitude,
+    required this.longitude,
+    required this.contactNumber,
+  });
+
+  factory PoliceLocation.fromJson(Map<String, dynamic> json) {
+    return PoliceLocation(
+      name: json['name'],
+      latitude: json['latitude'].toDouble(),
+      longitude: json['longitude'].toDouble(),
+      contactNumber: json['contact_number'],
+    );
+  }
+}
 
 class UserHomepage extends StatefulWidget {
   const UserHomepage({super.key});
@@ -102,7 +127,7 @@ class _UserHomepageState extends State<UserHomepage> {
             // Quick Actions Section
             _buildSectionHeader('Quick Actions'),
             const SizedBox(height: 16),
-            _buildQuickActionsGrid(),
+            _buildQuickActionsGrid(context),
 
             const SizedBox(height: 30),
 
@@ -165,7 +190,7 @@ class _UserHomepageState extends State<UserHomepage> {
     );
   }
 
-  Widget _buildQuickActionsGrid() {
+  Widget _buildQuickActionsGrid(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -182,7 +207,7 @@ class _UserHomepageState extends State<UserHomepage> {
                   Icons.upload_outlined,
                   'Upload Safety Tip',
                   Colors.blue,
-                ),
+                ), // no onTap
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -190,6 +215,14 @@ class _UserHomepageState extends State<UserHomepage> {
                   Icons.gavel_outlined,
                   'Legal Aid',
                   Colors.blue,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const UserLegalaid(),
+                      ),
+                    );
+                  },
                 ),
               ),
             ],
@@ -202,40 +235,28 @@ class _UserHomepageState extends State<UserHomepage> {
                   Icons.location_on_outlined,
                   'Share Location',
                   Colors.blue,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const MapPage()),
+                    );
+                  },
                 ),
               ),
               const SizedBox(width: 16),
               Expanded(
-                child: ElevatedButton(
-                  onPressed: () async {
-                    if (emergencyContacts.isNotEmpty) {
-                      final EmergencyContact contact = emergencyContacts.first;
-                      final Uri url = Uri(
-                        scheme: 'tel',
-                        path: contact.contactNumber.replaceAll(
-                          RegExp(r'[^\d+]'),
-                          '',
-                        ), // Clean the number
-                      );
-
-                      try {
-                        if (await canLaunchUrl(url)) {
-                          await launchUrl(url);
-                        } else {
-                          print('Cannot launch phone app');
-                        }
-                      } catch (e) {
-                        print('Error launching phone call: $e');
-                      }
-                    } else {
-                      print('No emergency contacts available');
-                    }
+                child: _buildQuickActionItem(
+                  Icons.warning_amber_outlined,
+                  'Panic button',
+                  Colors.red,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const MapPage(triggerPanic: true),
+                      ),
+                    );
                   },
-                  child: _buildQuickActionItem(
-                    Icons.phone_outlined,
-                    'Emergency Call',
-                    Colors.red,
-                  ),
                 ),
               ),
             ],
@@ -245,33 +266,34 @@ class _UserHomepageState extends State<UserHomepage> {
     );
   }
 
-  Widget _buildQuickActionItem(IconData icon, String label, Color color) {
-    return GestureDetector(
-      onTap: () {
-        // Handle quick action tap
-      },
-      child: Column(
-        children: [
-          Container(
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
+  Widget _buildQuickActionItem(
+    IconData icon,
+    String label,
+    Color color, {
+    VoidCallback? onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border.all(color: Colors.grey[200]!),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: color, size: 28),
+            const SizedBox(height: 8),
+            Text(
+              label,
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+              textAlign: TextAlign.center,
             ),
-            child: Icon(icon, color: color, size: 28),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            label,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: Colors.black87,
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

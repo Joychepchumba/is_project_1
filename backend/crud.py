@@ -64,22 +64,24 @@ def save_base64_image(base64_string: str, user_id: int, user_type: str) -> str:
         print(f"Error saving image: {e}")
         return None
     
+# Fix 1: Update get_current_user function to return consistent keys
 def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
-
+    
     try:
         payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[ALGORITHM])
         user_id: str = payload.get("sub")
         user_type: str = payload.get("user_type")
-
+        
         if user_id is None or user_type is None:
             raise credentials_exception
-
-        return {"sub": user_id, "user_type": user_type}
+        
+        # Return with consistent key names
+        return {"user_id": user_id, "user_type": user_type}
     except JWTError:
         raise credentials_exception
 

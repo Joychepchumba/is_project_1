@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:is_project_1/pages/login_page.dart';
-import 'package:is_project_1/pages/user_pages/map_page.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
@@ -33,9 +32,9 @@ Future<void> main() async {
 
     await Supabase.initialize(url: supabaseUrl, anonKey: supabaseAnonKey);
 
-    print('✅ Supabase and Mapbox initialized successfully');
+    print('Supabase and Mapbox initialized successfully');
   } catch (e) {
-    print('❌ Initialization error: $e');
+    print('Initialization error: $e');
   }
 
   runApp(const MyApp());

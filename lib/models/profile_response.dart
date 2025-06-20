@@ -64,4 +64,8 @@ class EmergencyContact {
       emailContact: json['email_contact'] as String?,
     );
   }
+
+  Null get phoneNumber => null;
+
+  Null get name => null;
 }

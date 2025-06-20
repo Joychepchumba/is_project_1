@@ -102,7 +102,7 @@ class _ProfilePageState extends State<ProfilePage> {
   String _getMemberSinceText() {
     // You can implement member since logic here
     // For now, using a placeholder
-    return 'Member since 2024';
+    return 'Member since 2025-06-20';
   }
 
   String _getProfileImageUrl() {
@@ -350,12 +350,9 @@ class _ProfilePageState extends State<ProfilePage> {
                                 ),
                               )
                             else
-                              ...emergencyContacts
-                                  .map(
-                                    (contact) =>
-                                        _buildEmergencyContact(contact),
-                                  )
-                                  .toList(),
+                              ...emergencyContacts.map(
+                                (contact) => _buildEmergencyContact(contact),
+                              ),
                           ],
 
                           const SizedBox(height: 40),

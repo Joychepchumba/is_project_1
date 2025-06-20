@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:is_project_1/components/custom_legal_navbar.dart';
 
 class LegalCasesPage extends StatelessWidget {
-  const LegalCasesPage({Key? key}) : super(key: key);
+  const LegalCasesPage({super.key});
 
   @override
   Widget build(BuildContext context) {

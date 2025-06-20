@@ -1,5 +1,10 @@
-from pydantic import BaseModel, EmailStr, UUID4
+from unittest.mock import Base
+from pydantic import BaseModel, ConfigDict, EmailStr, UUID4
 from typing import Optional, List
+from datetime import datetime
+from pydantic import BaseModel
+from typing import Optional
+from decimal import Decimal
 from datetime import datetime
 
 
@@ -125,6 +130,25 @@ class ShowLegalAid(LegalAidProvider):
     model_config = {
         "from_attributes": True
     }
+
+
+class UserDistributionResponse(BaseModel):
+    total_users: int
+    legal_aid_providers: int
+    admins: int
+
+
+class DangerZoneDataPoint(BaseModel):
+    location_name: str
+    reported_count: int
+
+class DangerZonesResponse(BaseModel):
+    data: List[DangerZoneDataPoint]
+    total_incidents: int
+
+class AnalyticsResponse(BaseModel):
+    user_distribution: UserDistributionResponse
+    danger_zones: DangerZonesResponse
 
 
 
@@ -290,6 +314,8 @@ class SafetyTipShow(SafetyTipBase):
         orm_mode = True
 
 
+
+
 class DangerZoneBase(BaseModel):
     location_name: str
     latitude: float
@@ -302,12 +328,12 @@ class DangerZoneCreate(DangerZoneBase):
 
 class DangerZoneShow(DangerZoneBase):
     id: int
+class DangerZoneResponse(DangerZoneBase):
+    id: int
 
     model_config = {
         "from_attributes": True
     }
-
-
 
 class PoliceLocationBase(BaseModel):
     name: str
@@ -315,15 +341,47 @@ class PoliceLocationBase(BaseModel):
     longitude: float
     contact_number: str
 
-class PoliceLocationCreate(PoliceLocationBase):
-    pass
+
+
+class PoliceLocationCreate(BaseModel):
+    name: str
+    latitude: float
+    longitude: float
+    contact_number: str
+
+class PoliceLocationUpdate(BaseModel):
+    name: str
+    latitude: float
+    longitude: float
+    contact_number: str
 
 class PoliceLocationShow(PoliceLocationBase):
     id: int
+    name: str
+    latitude:float
+    longitude: float
+    contact_number: str
+class PoliceLocationResponse(BaseModel):
+    id: int
+    name: str
+    latitude: float
+    longitude: float
+    contact_number: str
+
 
     model_config = {
         "from_attributes": True
     }
+
+class ProximityAlert(BaseModel):
+    user_latitude: float
+    user_longitude: float
+    radius: Optional[float] = 1000.0  # Check within 1km by default
+
+class ProximityResponse(BaseModel):
+    nearby_police: List[PoliceLocationResponse]
+    nearby_dangers: List[DangerZoneResponse]
+    warnings: List[str]
 
 
 class PreviousFemicideDataBase(BaseModel):
@@ -356,3 +414,111 @@ class PreviousFemicideDataShow(PreviousFemicideDataBase):
     model_config = {
         "from_attributes": True
     }
+
+
+# Request schemas (for API input)
+class SMSRequest(BaseModel):
+    phone_number: str
+    message: str
+    is_emergency: Optional[bool] = False
+
+class LocationSMSRequest(BaseModel):
+    phone_number: str
+    message: str
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+
+# Response schemas (for API output)
+class SMSResponse(BaseModel):
+    id: int
+    phone_number: str
+    message: str
+    is_emergency: bool
+    sent_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+class LocationSMSResponse(BaseModel):
+    id: int
+    phone_number: str
+    message: str
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    sent_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+# If you need these for creating database records
+class SMSCreate(BaseModel):
+    phone_number: str
+    message: str
+    is_emergency: bool = False
+
+class LocationSMSCreate(BaseModel):
+    phone_number: str
+    message: str
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    
+class RealTimeGPSLogCreate(BaseModel):
+    activity_id: int
+    latitude: float
+    longitude: float
+
+
+class RealTimeGPSLogShow(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    
+    id: int
+    user_id: UUID4
+    activity_id: int
+    latitude: float
+    longitude: float
+    recorded_at: datetime
+
+
+class LocationSharingSessionCreate(BaseModel):
+    activity_id: int
+    contacts: List[str]
+    duration_hours: int = 24
+
+
+class LocationSharingSessionShow(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    
+    id: int
+    user_id: UUID4
+    activity_id: int
+    session_token: str
+    contacts: str  # JSON string
+    expires_at: datetime
+    created_at: datetime
+    is_active: bool
+
+
+class UserShow(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    
+    id: str
+    full_name: Optional[str] = None
+    email: Optional[str] = None
+    phone_number: Optional[str] = None
+    created_at: datetime
+
+
+class ActivityCreate(BaseModel):
+    name: str
+    description: Optional[str] = None
+
+
+class ActivityShow(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    
+    id: int
+    user_id: UUID4
+    name: str
+    description: Optional[str] = None
+    created_at: datetime
+    is_active: bool
