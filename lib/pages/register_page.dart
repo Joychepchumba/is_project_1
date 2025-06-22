@@ -34,7 +34,7 @@ class _RegisterPageState extends State<RegisterPage> {
   File? _profileImage;
   bool _isLoading = false;
 
-  static const String API_BASE_URL = 'https://14b1-156-0-232-51.ngrok-free.app';
+  static const String API_BASE_URL = 'https://0498-41-90-176-14.ngrok-free.app';
 
   String get roleString {
     return selectedRole == 5

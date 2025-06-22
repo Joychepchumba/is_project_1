@@ -17,6 +17,7 @@ import os
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from safety_tips_page import router as safety_tips_router 
+from paypal import paypal_router
 
 app = FastAPI()
 
@@ -28,6 +29,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.include_router(safety_tips_router)
+app.include_router(paypal_router)
 
 load_dotenv()
 

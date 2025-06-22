@@ -1,14 +1,20 @@
 from database import Base
 from sqlalchemy import (
-    Column, String, Integer, TIMESTAMP, ForeignKey, Text, Boolean, DateTime,
-    DECIMAL, text
+    Column, String, Integer, TIMESTAMP, ForeignKey, Text, Boolean,
+    DateTime, DECIMAL, Table, text
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 import uuid
 import datetime
-from pydantic import BaseModel, EmailStr
-from typing import Optional
+
+# Association table for many-to-many relationship
+legal_provider_expertise = Table(
+    "legal_provider_expertise",
+    Base.metadata,
+    Column("provider_id", UUID(as_uuid=True), ForeignKey("legal_aid_providers.id")),
+    Column("expertise_id", Integer, ForeignKey("expertise_areas.id"))
+)
 
 class Role(Base):
     __tablename__ = "roles"
@@ -17,7 +23,6 @@ class Role(Base):
 
     users = relationship("User", back_populates="role")
     legal_providers = relationship("LegalAidProvider", back_populates="role")
-
 
 class User(Base):
     __tablename__ = "users"
@@ -29,28 +34,47 @@ class User(Base):
     role_id = Column(Integer, ForeignKey("roles.id"))
     profile_image = Column(Text, nullable=True)
     created_at = Column(TIMESTAMP, server_default=text("now()"))
-    
+
     role = relationship("Role", back_populates="users")
     safety_tips = relationship("SafetyTip", back_populates="submitted_by_user")
     panic_info = relationship("PanicInfo", back_populates="user")
     emergency_contacts = relationship("EmergencyContact", back_populates="user", cascade="all, delete-orphan")
 
+class ExpertiseArea(Base):
+    __tablename__ = "expertise_areas"
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String(100), unique=True, nullable=False)
+
+    providers = relationship(
+        "LegalAidProvider",
+        secondary=legal_provider_expertise,
+        back_populates="expertise_areas"
+    )
+
 class LegalAidProvider(Base):
     __tablename__ = "legal_aid_providers"
+
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     full_name = Column(String(255))
     phone_number = Column(String(20), unique=True)
     email = Column(String(255), unique=True)
     password_hash = Column(Text)
-    expertise_area = Column(String(255))
+
+    expertise_areas = relationship(
+        "ExpertiseArea",
+        secondary=legal_provider_expertise,
+        back_populates="providers"
+    )
+
     status = Column(String(50))
     profile_image = Column(Text, nullable=True)
+    psk_number = Column(String(50), unique=True, nullable=False)
     created_at = Column(TIMESTAMP, server_default=text("now()"))
     role_id = Column(Integer, ForeignKey("roles.id"))
 
     role = relationship("Role", back_populates="legal_providers")
     safety_tips = relationship("SafetyTip", back_populates="submitted_by_legal")
-
 
 class SafetyTip(Base):
     __tablename__ = "safety_tips"
@@ -65,7 +89,6 @@ class SafetyTip(Base):
     submitted_by_user = relationship("User", back_populates="safety_tips")
     submitted_by_legal = relationship("LegalAidProvider", back_populates="safety_tips")
 
-
 class UserLegalMatch(Base):
     __tablename__ = "user_legal_matches"
     id = Column(Integer, primary_key=True)
@@ -73,7 +96,6 @@ class UserLegalMatch(Base):
     legal_aid_id = Column(UUID(as_uuid=True), ForeignKey("legal_aid_providers.id"))
     matched_at = Column(TIMESTAMP, server_default=text("now()"))
     status = Column(String(50))
-
 
 class EmergencyContact(Base):
     __tablename__ = "emergency_contacts"
@@ -84,7 +106,6 @@ class EmergencyContact(Base):
     email_contact = Column(String(255))
 
     user = relationship("User", back_populates="emergency_contacts")
-
 
 class PanicInfo(Base):
     __tablename__ = "panic_info"
@@ -100,7 +121,6 @@ class PanicInfo(Base):
 
     user = relationship("User", back_populates="panic_info")
 
-
 class DangerZone(Base):
     __tablename__ = "danger_zones"
     id = Column(Integer, primary_key=True, index=True)
@@ -109,7 +129,6 @@ class DangerZone(Base):
     latitude = Column(DECIMAL(9, 6))
     description = Column(Text)
     reported_count = Column(Integer, server_default=text("0"))
-
 
 class Notification(Base):
     __tablename__ = "notifications"
@@ -133,4 +152,3 @@ class LegalAidTokenTable(Base):
     refresh_token = Column(String(450), nullable=False)
     status = Column(Boolean)
     created_date = Column(DateTime, default=datetime.datetime.now)
-

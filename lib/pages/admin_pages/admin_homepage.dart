@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:is_project_1/components/custom_admin.navbar.dart';
+import 'package:is_project_1/pages/admin_pages/UploadEducationPage.dart';
 
 class AdminHomepage extends StatefulWidget {
   const AdminHomepage({super.key});
@@ -148,6 +149,22 @@ class _AdminHomepageState extends State<AdminHomepage> {
               badge: '5',
               badgeColor: Colors.red,
             ),
+            const SizedBox(height: 12),
+              InkWell(
+              onTap: () {
+              Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const UploadEducationPage()),
+              );
+          },
+              child: _buildActionItem(
+              icon: Icons.school,
+              iconColor: Colors.blueAccent,
+              title: 'Upload Educational Content',
+              subtitle: 'Create new modules or articles',
+              hasArrow: true,
+  ),
+),
             const SizedBox(height: 12),
             _buildActionItem(
               icon: Icons.bar_chart,

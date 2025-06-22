@@ -2,21 +2,19 @@ from pydantic import BaseModel, EmailStr, UUID4
 from typing import Optional, List
 from datetime import datetime
 
-
 '''
 So this ka code is like to sort of set the design ya the processes 
 So like kama login will be done using phone no and password
 alafu kama ku update you can  update information like phone no etc but huwezi update ids , created at you get
 
 '''
-
-
-# User schemas
-
+# ===============================
+# User Schemas
+# ===============================
 
 class UserBase(BaseModel):
     full_name: str
-    phone_number: str  
+    phone_number: str
     email: EmailStr
     role_id: int
     profile_image: Optional[str] = None
@@ -25,20 +23,17 @@ class UserBase(BaseModel):
     emergency_contact_number: Optional[str] = None
     emergency_contact_email: Optional[EmailStr] = None
 
-
 class CreateUser(UserBase):
-    password_hash: Optional[str] = None  # optional now, because Google users may not have a password
+    password_hash: Optional[str] = None
     role_id: int
-    google_oauth: Optional[bool] = False  # Flag for Google users
+    google_oauth: Optional[bool] = False
 
 class LoginGoogleUser(BaseModel):
     email: EmailStr
-   
 
 class LoginUser(BaseModel):
-    identifier: str  # Can be either email or phone_number
+    identifier: str
     password_hash: str
-
 
 class UpdateUser(BaseModel):
     full_name: Optional[str] = None
@@ -53,62 +48,62 @@ class ShowUser(UserBase):
         "from_attributes": True
     }
 
-
 class TokenSchema(BaseModel):
     access_token: str
     refresh_token: str
 
 class changepassword(BaseModel):
-    email:str
-    old_password:str
-    new_password:str
-
-class TokenCreate(BaseModel):
-    user_id:str
-    access_token:str
-    refresh_token:str
-    status:bool
-    created_date: datetime
-
-
-
-# Legal Aid Provider schemas
-class editprofile(BaseModel):
+    email: str
     old_password: str
     new_password: str
-    full_name: str
-    email: str
-    phone_number: str
-    profile_image: Optional[str] = None
-    
-    # Emergency contact fields (for regular users)
-    emergency_contact_name: Optional[str] = None
-    emergency_contact_email: Optional[str] = None
-    emergency_contact_number: Optional[str] = None
-    
-    # Legal aid specific fields
-    expertise_area: Optional[str] = None
 
+class TokenCreate(BaseModel):
+    user_id: str
+    access_token: str
+    refresh_token: str
+    status: bool
+    created_date: datetime
 
-class LegalAidProvider(BaseModel):
+# ===============================
+# Expertise Area Schemas
+# ===============================
+
+class ExpertiseAreaBase(BaseModel):
+    name: str
+
+class ExpertiseAreaCreate(ExpertiseAreaBase):
+    pass
+
+class ExpertiseAreaOut(ExpertiseAreaBase):
+    id: int
+
+    model_config = {
+        "from_attributes": True
+    }
+
+# ===============================
+# Legal Aid Provider Schemas
+# ===============================
+
+class LegalAidProviderBase(BaseModel):
     full_name: str
     phone_number: str
     email: EmailStr
-    expertise_area: str
     status: str
     profile_image: Optional[str] = None
+    psk_number: str
 
-class CreateLegalAid(LegalAidProvider):
-    password_hash: Optional[str] = None  # optional now, because Google users may not have a password
+class CreateLegalAid(LegalAidProviderBase):
+    password_hash: Optional[str] = None
     role_id: int
-    google_oauth: Optional[bool] = False  # Flag for Google users
+    google_oauth: Optional[bool] = False
+    expertise_area_ids: List[int]
 
-  
 class LoginLglAidGoogleUser(BaseModel):
     email: EmailStr
 
 class LoginLegalAid(BaseModel):
-    identifier: str  # Can be either email or phone_number
+    identifier: str
     password_hash: str
 
 class UpdateLegalAid(BaseModel):
@@ -116,23 +111,37 @@ class UpdateLegalAid(BaseModel):
     phone_number: Optional[str] = None
     email: Optional[EmailStr] = None
     password_hash: Optional[str] = None
-    expertise_area: Optional[str] = None
     status: Optional[str] = None
+    profile_image: Optional[str] = None
+    psk_number: Optional[str] = None
+    expertise_area_ids: Optional[List[int]] = None
 
-class ShowLegalAid(LegalAidProvider):
+class ShowLegalAid(LegalAidProviderBase):
     id: UUID4
+    expertise_areas: List[ExpertiseAreaOut]
+    created_at: datetime
 
     model_config = {
         "from_attributes": True
     }
 
+class editprofile(BaseModel):
+    old_password: str
+    new_password: str
+    full_name: str
+    email: str
+    phone_number: str
+    profile_image: Optional[str] = None
 
+    emergency_contact_name: Optional[str] = None
+    emergency_contact_email: Optional[str] = None
+    emergency_contact_number: Optional[str] = None
 
+    expertise_area: Optional[str] = None
 
-
-
-# Emergency Contact schemas
-
+# ===============================
+# Emergency Contact Schemas
+# ===============================
 
 class EmergencyContactBase(BaseModel):
     contact_name: str
@@ -154,10 +163,9 @@ class ShowEmergencyContact(EmergencyContactBase):
         "from_attributes": True
     }
 
-
-
-# Panic Info schemas
-
+# ===============================
+# Panic Info Schemas
+# ===============================
 
 class PanicInfoBase(BaseModel):
     longitude: float
@@ -169,7 +177,6 @@ class PanicInfoBase(BaseModel):
 
 class CreatePanicInfo(PanicInfoBase):
     user_id: UUID4
-
 
 class UpdatePanicInfo(BaseModel):
     status: Optional[str] = None
@@ -184,9 +191,9 @@ class ShowPanicInfo(PanicInfoBase):
         "from_attributes": True
     }
 
-
-# Notifications schemas
-
+# ===============================
+# Notification Schemas
+# ===============================
 
 class NotificationBase(BaseModel):
     receiver_contact: str
@@ -196,7 +203,6 @@ class NotificationBase(BaseModel):
 class CreateNotification(NotificationBase):
     panic_info_id: int
 
-
 class ShowNotification(NotificationBase):
     id: int
 
@@ -204,51 +210,41 @@ class ShowNotification(NotificationBase):
         "from_attributes": True
     }
 
-
-
-# Roles schemas
-
+# ===============================
+# Role Schemas
+# ===============================
 
 class Role(BaseModel):
     id: int
     name: str
 
-
     model_config = {
         "from_attributes": True
     }
 
-
-
-
-# User Legal Matches schemas
-
+# ===============================
+# User Legal Match Schemas
+# ===============================
 
 class UserLegalMatchBase(BaseModel):
     user_id: UUID4
     legal_aid_id: UUID4
     status: str
 
-
-
 class ShowUserLegalMatch(UserLegalMatchBase):
     id: int
-
 
     model_config = {
         "from_attributes": True
     }
 
-
-
-
-# Other schemas
-
+# ===============================
+# Other Schemas
+# ===============================
 
 class Activity(BaseModel):
     id: int
     name: str
-
 
     model_config = {
         "from_attributes": True
@@ -267,12 +263,9 @@ class RealTimeGPSLogCreate(RealTimeGPSLogBase):
 class RealTimeGPSLogShow(RealTimeGPSLogBase):
     id: int
 
-
     model_config = {
         "from_attributes": True
     }
-
-
 
 class SafetyTipBase(BaseModel):
     title: str
@@ -281,14 +274,12 @@ class SafetyTipBase(BaseModel):
     submitted_by_role: str
     status: str
 
-
 class SafetyTipShow(SafetyTipBase):
     id: int
     created_at: datetime
 
     class Config:
         orm_mode = True
-
 
 class DangerZoneBase(BaseModel):
     location_name: str
@@ -307,8 +298,6 @@ class DangerZoneShow(DangerZoneBase):
         "from_attributes": True
     }
 
-
-
 class PoliceLocationBase(BaseModel):
     name: str
     latitude: float
@@ -324,7 +313,6 @@ class PoliceLocationShow(PoliceLocationBase):
     model_config = {
         "from_attributes": True
     }
-
 
 class PreviousFemicideDataBase(BaseModel):
     medium: str
