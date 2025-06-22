@@ -18,6 +18,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from safety_tips_page import router as safety_tips_router 
 from paypal import paypal_router
+from admin_routes import router as admin_router
+
 
 app = FastAPI()
 
@@ -30,6 +32,7 @@ app.add_middleware(
 )
 app.include_router(safety_tips_router)
 app.include_router(paypal_router)
+app.include_router(admin_router)
 
 load_dotenv()
 

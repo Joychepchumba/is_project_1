@@ -1,8 +1,71 @@
 import 'package:flutter/material.dart';
 import 'package:is_project_1/components/custom_admin.navbar.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
-class VerifyProvidersPage extends StatelessWidget {
+class VerifyProvidersPage extends StatefulWidget {
   const VerifyProvidersPage({super.key});
+
+  @override
+  State<VerifyProvidersPage> createState() => _VerifyProvidersPageState();
+}
+
+class _VerifyProvidersPageState extends State<VerifyProvidersPage> {
+  List<dynamic> pendingProviders = [];
+  int totalCount = 0;
+  int pendingCount = 0;
+  final String baseUrl = "https://0498-41-90-176-14.ngrok-free.app";
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPendingProviders();
+    _loadStatistics();
+  }
+
+  Future<void> _loadPendingProviders() async {
+    final response = await http.get(Uri.parse('$baseUrl/pending_providers'));
+    if (response.statusCode == 200) {
+      setState(() {
+        pendingProviders = jsonDecode(response.body);
+      });
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Failed to load providers")),
+      );
+    }
+  }
+
+Future<void> _loadStatistics() async {
+  final response = await http.get(Uri.parse('$baseUrl/provider_stats'));
+  if (response.statusCode == 200) {
+    final data = jsonDecode(response.body);
+    setState(() {
+      totalCount = data['total'];
+      pendingCount = data['pending'];
+    });
+  }
+}
+
+
+Future<void> _verifyProvider(String providerId) async {
+  final response = await http.put(
+    Uri.parse('$baseUrl/verify_provider/$providerId'),
+    headers: {'Content-Type': 'application/json'},
+  );
+
+  if (response.statusCode == 200) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Provider verified")),
+    );
+    await _loadPendingProviders(); // Refresh list
+  } else {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Verification failed")),
+    );
+  }
+}
+
 
   @override
   Widget build(BuildContext context) {
@@ -55,7 +118,7 @@ class VerifyProvidersPage extends StatelessWidget {
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 40.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -64,7 +127,7 @@ class VerifyProvidersPage extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text(
-                  'Verify Legal Aid Providers',
+                  'Verification',
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w600,
@@ -80,48 +143,43 @@ class VerifyProvidersPage extends StatelessWidget {
                     color: Colors.blue.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  child: const Text(
-                    '3 Pending',
-                    style: TextStyle(
-                      color: Colors.blue,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
+                 child: Text(
+  '${pendingProviders.length} Pending',
+  style: const TextStyle(
+    color: Colors.blue,
+    fontSize: 14,
+    fontWeight: FontWeight.w500,
+  ),
+),
                 ),
               ],
             ),
             const SizedBox(height: 24),
 
             // Provider Cards
-            _buildProviderCard(
-              name: 'Advocate Karen Nyamu',
-              phone: '0778262262',
-              expertise: 'Expert in gender violence cases',
-              lskNumber: 'LSK practice_number: psk756/2023/F3',
-              avatarText: 'KN',
-              avatarColor: const Color(0xFF7BB3C7),
-            ),
-            const SizedBox(height: 16),
+            Column(
+  children: pendingProviders.map((provider) {
+    final initials = provider['full_name']
+      .split(' ')
+      .map((s) => s[0])
+      .take(2)
+      .join();
 
-            _buildProviderCard(
-              name: 'Advocate Mariakani Walukura',
-              phone: '0776268185262',
-              expertise: 'Expert in criminal law',
-              lskNumber: 'LSK practice_number: psk176/2024/188282',
-              avatarText: 'MW',
-              avatarColor: const Color(0xFF4CAF50),
-            ),
-            const SizedBox(height: 16),
-
-            _buildProviderCard(
-              name: 'Advocate Peter Gathu',
-              phone: '0787772626262',
-              expertise: 'Expert in gender violence cases',
-              lskNumber: 'LSK practice_number: psk006/1958/F3',
-              avatarText: 'PG',
-              avatarColor: const Color(0xFF7BB3C7),
-            ),
+    return _buildProviderCard(
+      name: provider['full_name'],
+      phone: provider['phone_number'],
+      expertise: provider['legal_provider_expertise'] != null &&
+                 provider['legal_provider_expertise'] is List &&
+                 provider['legal_provider_expertise'].isNotEmpty
+                 ? (provider['legal_provider_expertise'][0]['expertise_areas']?['name'] ?? 'N/A')
+                 : 'N/A',
+      lskNumber: provider['psk_number'],
+      avatarText: initials.toUpperCase(),
+      avatarColor: const Color(0xFF7BB3C7),
+      providerId: provider['id'], 
+    );
+  }).toList(),
+),
             const SizedBox(height: 32),
 
             // Statistics Section
@@ -140,6 +198,7 @@ class VerifyProvidersPage extends StatelessWidget {
     required String lskNumber,
     required String avatarText,
     required Color avatarColor,
+    required  providerId,
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -217,27 +276,17 @@ class VerifyProvidersPage extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                  // Handle view more action
-                },
+                SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                onPressed: () => _verifyProvider(providerId),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF7BB3C7),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  elevation: 0,
+                backgroundColor: Colors.green,
+                foregroundColor: Colors.white,
                 ),
-                child: const Text(
-                  'View More',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                child: const Text("Verify"),
                 ),
               ),
-            ),
           ],
         ),
       ),
@@ -265,7 +314,7 @@ class VerifyProvidersPage extends StatelessWidget {
             Expanded(
               child: _buildStatItem(
                 title: 'Total Providers',
-                value: '24',
+                value: '$totalCount',
                 icon: Icons.people,
                 color: const Color(0xFF4CAF50),
               ),
@@ -274,7 +323,7 @@ class VerifyProvidersPage extends StatelessWidget {
             Expanded(
               child: _buildStatItem(
                 title: 'Pending',
-                value: '3',
+                value: '$pendingCount',
                 icon: Icons.pending_actions,
                 color: Colors.orange,
               ),
