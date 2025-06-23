@@ -30,7 +30,7 @@ class _SafetyTipsPageState extends State<SafetyTipsPage> {
   ];
 
   final int _selectedIndex = 2;
-  final String baseUrl = 'https://0498-41-90-176-14.ngrok-free.app';
+  final String baseUrl = 'https://de6f-41-90-176-14.ngrok-free.app';
 
   @override
   void initState() {

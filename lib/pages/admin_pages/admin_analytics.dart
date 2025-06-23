@@ -1,9 +1,42 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import 'package:is_project_1/components/custom_admin.navbar.dart';
 
-class AdminAnalyticsPage extends StatelessWidget {
+class AdminAnalyticsPage extends StatefulWidget {
   const AdminAnalyticsPage({super.key});
+
+  @override
+  State<AdminAnalyticsPage> createState() => _AdminAnalyticsPageState();
+}
+
+class _AdminAnalyticsPageState extends State<AdminAnalyticsPage> {
+  Map<String, dynamic> analytics = {};
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchAnalytics();
+  }
+
+  Future<void> _fetchAnalytics() async {
+    final response = await http.get(Uri.parse('https://de6f-41-90-176-14.ngrok-free.app/analytics/overview'));
+    if (response.statusCode == 200) {
+      setState(() {
+        analytics = jsonDecode(response.body);
+        isLoading = false;
+      });
+    } else {
+      setState(() {
+        isLoading = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Failed to load analytics")),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -21,53 +54,40 @@ class AdminAnalyticsPage extends StatelessWidget {
           children: [
             Text(
               'Analytics Dashboard',
-              style: TextStyle(
-                color: Colors.black,
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-              ),
+              style: TextStyle(color: Colors.black, fontSize: 18, fontWeight: FontWeight.w600),
             ),
             Text(
               'Monitor app usage and performance metrics',
-              style: TextStyle(
-                color: Colors.grey,
-                fontSize: 12,
-                fontWeight: FontWeight.normal,
-              ),
+              style: TextStyle(color: Colors.grey, fontSize: 12),
             ),
           ],
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_outlined, color: Colors.black),
-            onPressed: () {},
-          ),
-          const CircleAvatar(
+        actions: const [
+          Icon(Icons.notifications_outlined, color: Colors.black),
+          SizedBox(width: 12),
+          CircleAvatar(
             radius: 16,
             backgroundColor: Colors.grey,
             child: Icon(Icons.person, color: Colors.white, size: 20),
           ),
-          const SizedBox(width: 16),
+          SizedBox(width: 16),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Usage Metrics Card
-            _buildUsageMetricsCard(),
-            const SizedBox(height: 20),
-
-            // Revenue Generated Card
-            _buildRevenueCard(),
-            const SizedBox(height: 20),
-
-            // Frequent Danger Zones Card
-            _buildDangerZonesCard(),
-          ],
-        ),
-      ),
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildUsageMetricsCard(),
+                  const SizedBox(height: 20),
+                  _buildRevenueCard(),
+                  const SizedBox(height: 20),
+                  _buildDangerZonesCard(),
+                ],
+              ),
+            ),
       bottomNavigationBar: const CustomAdminNavigationBar(currentIndex: 2),
     );
   }
@@ -89,24 +109,14 @@ class AdminAnalyticsPage extends StatelessWidget {
                     color: Colors.blue.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(
-                    Icons.analytics,
-                    color: Colors.blue,
-                    size: 20,
-                  ),
+                  child: const Icon(Icons.analytics, color: Colors.blue, size: 20),
                 ),
                 const SizedBox(width: 12),
-                const Text(
-                  'Usage Metrics',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-                ),
+                const Text('Usage Metrics', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
               ],
             ),
             const SizedBox(height: 8),
-            const Text(
-              'User Distribution',
-              style: TextStyle(color: Colors.grey, fontSize: 14),
-            ),
+            const Text('User Distribution', style: TextStyle(color: Colors.grey, fontSize: 14)),
             const SizedBox(height: 24),
             SizedBox(
               height: 200,
@@ -117,20 +127,20 @@ class AdminAnalyticsPage extends StatelessWidget {
                   sections: [
                     PieChartSectionData(
                       color: Colors.blue,
-                      value: 45,
-                      title: '',
+                      value: (analytics['providers'] ?? 0).toDouble(),
+                      title: '${analytics['providers'] ?? 0}',
                       radius: 50,
                     ),
                     PieChartSectionData(
-                      color: Colors.lightBlue,
-                      value: 35,
-                      title: '',
+                      color: const Color.fromARGB(255, 244, 152, 3),
+                      value: (analytics['users'] ?? 0).toDouble(),
+                      title: '${analytics['users'] ?? 0}',
                       radius: 50,
                     ),
                     PieChartSectionData(
                       color: Colors.grey[300]!,
-                      value: 20,
-                      title: '',
+                      value: (analytics['admins'] ?? 0).toDouble(),
+                      title: '${analytics['admins'] ?? 0}',
                       radius: 50,
                     ),
                   ],
@@ -142,7 +152,7 @@ class AdminAnalyticsPage extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
                 _buildLegendItem('Legal Aid Providers', Colors.blue),
-                _buildLegendItem('Users', Colors.lightBlue),
+                _buildLegendItem('Users', const Color.fromARGB(255, 244, 152, 3)),
                 _buildLegendItem('Admin', Colors.grey[300]!),
               ],
             ),
@@ -169,31 +179,27 @@ class AdminAnalyticsPage extends StatelessWidget {
                     color: Colors.green.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(
-                    Icons.trending_up,
-                    color: Colors.green,
-                    size: 20,
-                  ),
+                  child: const Icon(Icons.trending_up, color: Colors.green, size: 20),
                 ),
                 const SizedBox(width: 12),
-                const Text(
-                  'Revenue Generated',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-                ),
+                const Text('Revenue Generated', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
               ],
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Educational content revenue breakdown',
-              style: TextStyle(color: Colors.grey, fontSize: 14),
-            ),
+            const Text('Educational content revenue breakdown', style: TextStyle(color: Colors.grey, fontSize: 14)),
             const SizedBox(height: 24),
             SizedBox(
               height: 200,
               child: BarChart(
                 BarChartData(
                   alignment: BarChartAlignment.spaceAround,
-                  maxY: 8,
+                  maxY: (analytics['monthly_revenue'] != null && analytics['monthly_revenue'].isNotEmpty)
+                      ? analytics['monthly_revenue']
+                              .cast<Map<String, dynamic>>()
+.map((item) => (item['total'] ?? 0).toDouble())
+                              .reduce((a, b) => a > b ? a : b) +
+                          1
+                      : 10,
                   barTouchData: BarTouchData(enabled: false),
                   titlesData: FlTitlesData(
                     show: true,
@@ -201,16 +207,14 @@ class AdminAnalyticsPage extends StatelessWidget {
                       sideTitles: SideTitles(
                         showTitles: true,
                         getTitlesWidget: (value, meta) {
-                          const months = [
-                            'Jan-23',
-                            'Feb-23',
-                            'Mar-23',
-                            'Apr-23',
-                          ];
+                          final rawList = analytics['monthly_revenue'] ?? [];
+final months = List<Map<String, dynamic>>.from(rawList)
+    .map((item) => item['month'].toString())
+    .toList();
                           if (value.toInt() < months.length) {
-                            return Text(
-                              months[value.toInt()],
-                              style: const TextStyle(fontSize: 10),
+                            return Transform.rotate(
+                              angle: -0.5,
+                              child: Text(months[value.toInt()], style: const TextStyle(fontSize: 9)),
                             );
                           }
                           return const Text('');
@@ -221,87 +225,39 @@ class AdminAnalyticsPage extends StatelessWidget {
                       sideTitles: SideTitles(
                         showTitles: true,
                         getTitlesWidget: (value, meta) {
-                          return Text(
-                            '${value.toInt()}k',
-                            style: const TextStyle(fontSize: 10),
-                          );
+                          return Text(value.toInt().toString(), style: const TextStyle(fontSize: 10));
                         },
                       ),
                     ),
-                    topTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false),
-                    ),
-                    rightTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false),
-                    ),
+                    topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                    rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
                   ),
                   gridData: FlGridData(
                     show: true,
                     drawVerticalLine: false,
-                    horizontalInterval: 1,
-                    getDrawingHorizontalLine: (value) {
-                      return FlLine(color: Colors.grey[300]!, strokeWidth: 1);
-                    },
+                    horizontalInterval: 10,
+                    getDrawingHorizontalLine: (value) =>
+                        FlLine(color: Colors.grey[300]!, strokeWidth: 1),
                   ),
                   borderData: FlBorderData(show: false),
-                  barGroups: [
-                    BarChartGroupData(
-                      x: 0,
-                      barRods: [
-                        BarChartRodData(
-                          toY: 3.5,
-                          color: Colors.teal,
-                          width: 30,
-                          borderRadius: const BorderRadius.only(
-                            topLeft: Radius.circular(4),
-                            topRight: Radius.circular(4),
+                  barGroups: List.generate(
+                    analytics['monthly_revenue']?.length ?? 0,
+                    (index) {
+                      final item = analytics['monthly_revenue'][index];
+                      return BarChartGroupData(
+                        x: index,
+                        barRods: [
+                          BarChartRodData(
+                            toY: (item['total'] ?? 0).toDouble(),
+                            rodStackItems: [],
+                            color: Colors.teal,
+                            width: 30,
+                            borderRadius: BorderRadius.circular(4),
                           ),
-                        ),
-                      ],
-                    ),
-                    BarChartGroupData(
-                      x: 1,
-                      barRods: [
-                        BarChartRodData(
-                          toY: 5.2,
-                          color: Colors.teal,
-                          width: 30,
-                          borderRadius: const BorderRadius.only(
-                            topLeft: Radius.circular(4),
-                            topRight: Radius.circular(4),
-                          ),
-                        ),
-                      ],
-                    ),
-                    BarChartGroupData(
-                      x: 2,
-                      barRods: [
-                        BarChartRodData(
-                          toY: 6.8,
-                          color: Colors.teal,
-                          width: 30,
-                          borderRadius: const BorderRadius.only(
-                            topLeft: Radius.circular(4),
-                            topRight: Radius.circular(4),
-                          ),
-                        ),
-                      ],
-                    ),
-                    BarChartGroupData(
-                      x: 3,
-                      barRods: [
-                        BarChartRodData(
-                          toY: 7.5,
-                          color: Colors.teal,
-                          width: 30,
-                          borderRadius: const BorderRadius.only(
-                            topLeft: Radius.circular(4),
-                            topRight: Radius.circular(4),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+                        ],
+                      );
+                    },
+                  ),
                 ),
               ),
             ),
@@ -331,17 +287,11 @@ class AdminAnalyticsPage extends StatelessWidget {
                   child: const Icon(Icons.warning, color: Colors.red, size: 20),
                 ),
                 const SizedBox(width: 12),
-                const Text(
-                  'Frequent Danger Zones',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-                ),
+                const Text('Frequent Danger Zones', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
               ],
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Incident reports by location',
-              style: TextStyle(color: Colors.grey, fontSize: 14),
-            ),
+            const Text('Incident reports by location', style: TextStyle(color: Colors.grey, fontSize: 14)),
             const SizedBox(height: 24),
             SizedBox(
               height: 200,
@@ -356,23 +306,14 @@ class AdminAnalyticsPage extends StatelessWidget {
                       sideTitles: SideTitles(
                         showTitles: true,
                         getTitlesWidget: (value, meta) {
-                          const locations = [
-                            'Central Park',
-                            'East Side',
-                            'West End',
-                            'North Ave',
-                            'South St',
-                          ];
+                          final rawZones = analytics['danger_zones'] ?? [];
+final locations = List<Map<String, dynamic>>.from(rawZones)
+    .map((zone) => zone['location_name'].toString())
+    .toList();
                           if (value.toInt() < locations.length) {
-                            return Padding(
-                              padding: const EdgeInsets.only(top: 8),
-                              child: Transform.rotate(
-                                angle: -0.5,
-                                child: Text(
-                                  locations[value.toInt()],
-                                  style: const TextStyle(fontSize: 9),
-                                ),
-                              ),
+                            return Transform.rotate(
+                              angle: -0.5,
+                              child: Text(locations[value.toInt()], style: const TextStyle(fontSize: 9)),
                             );
                           }
                           return const Text('');
@@ -383,101 +324,42 @@ class AdminAnalyticsPage extends StatelessWidget {
                       sideTitles: SideTitles(
                         showTitles: true,
                         getTitlesWidget: (value, meta) {
-                          return Text(
-                            value.toInt().toString(),
-                            style: const TextStyle(fontSize: 10),
-                          );
+                          return Text(value.toInt().toString(), style: const TextStyle(fontSize: 10));
                         },
                       ),
                     ),
-                    topTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false),
-                    ),
-                    rightTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false),
-                    ),
+                    topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                    rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
                   ),
                   gridData: FlGridData(
                     show: true,
                     drawVerticalLine: false,
                     horizontalInterval: 10,
-                    getDrawingHorizontalLine: (value) {
-                      return FlLine(color: Colors.grey[300]!, strokeWidth: 1);
-                    },
+                    getDrawingHorizontalLine: (value) =>
+                        FlLine(color: Colors.grey[300]!, strokeWidth: 1),
                   ),
                   borderData: FlBorderData(show: false),
-                  barGroups: [
-                    BarChartGroupData(
-                      x: 0,
-                      barRods: [
-                        BarChartRodData(
-                          toY: 52,
-                          color: Colors.red,
-                          width: 25,
-                          borderRadius: const BorderRadius.only(
-                            topLeft: Radius.circular(4),
-                            topRight: Radius.circular(4),
+                  barGroups: List.generate(
+                    analytics['danger_zones']?.length ?? 0,
+                    (index) {
+                      final zone = analytics['danger_zones'][index];
+                      return BarChartGroupData(
+                        x: index,
+                        barRods: [
+                          BarChartRodData(
+                            toY: (zone['reported_count'] ?? 0).toDouble(),
+                            rodStackItems: [],
+                            color: Colors.red,
+                            width: 25,
+                            borderRadius: const BorderRadius.only(
+                              topLeft: Radius.circular(4),
+                              topRight: Radius.circular(4),
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                    BarChartGroupData(
-                      x: 1,
-                      barRods: [
-                        BarChartRodData(
-                          toY: 38,
-                          color: Colors.red,
-                          width: 25,
-                          borderRadius: const BorderRadius.only(
-                            topLeft: Radius.circular(4),
-                            topRight: Radius.circular(4),
-                          ),
-                        ),
-                      ],
-                    ),
-                    BarChartGroupData(
-                      x: 2,
-                      barRods: [
-                        BarChartRodData(
-                          toY: 45,
-                          color: Colors.red,
-                          width: 25,
-                          borderRadius: const BorderRadius.only(
-                            topLeft: Radius.circular(4),
-                            topRight: Radius.circular(4),
-                          ),
-                        ),
-                      ],
-                    ),
-                    BarChartGroupData(
-                      x: 3,
-                      barRods: [
-                        BarChartRodData(
-                          toY: 28,
-                          color: Colors.red,
-                          width: 25,
-                          borderRadius: const BorderRadius.only(
-                            topLeft: Radius.circular(4),
-                            topRight: Radius.circular(4),
-                          ),
-                        ),
-                      ],
-                    ),
-                    BarChartGroupData(
-                      x: 4,
-                      barRods: [
-                        BarChartRodData(
-                          toY: 15,
-                          color: Colors.red,
-                          width: 25,
-                          borderRadius: const BorderRadius.only(
-                            topLeft: Radius.circular(4),
-                            topRight: Radius.circular(4),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+                        ],
+                      );
+                    },
+                  ),
                 ),
               ),
             ),
@@ -491,11 +373,7 @@ class AdminAnalyticsPage extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Container(
-          width: 12,
-          height: 12,
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-        ),
+        Container(width: 12, height: 12, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
         const SizedBox(width: 6),
         Text(label, style: const TextStyle(fontSize: 11, color: Colors.grey)),
       ],

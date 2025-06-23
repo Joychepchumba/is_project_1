@@ -88,7 +88,7 @@ def paypal_checkout(user_id: str, content_id: str):
     paypal_url = f"https://www.sandbox.paypal.com/checkoutnow?user_id={user_id}&content_id={content_id}"
     return RedirectResponse(paypal_url)
 
-# ✅ NEW: Get content IDs purchased by a specific user
+# NEW: Get content IDs purchased by a specific user
 @router.get("/user_purchases/{user_id}")
 def get_user_purchases(user_id: str):
     try:

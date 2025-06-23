@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:is_project_1/components/custom_admin.navbar.dart';
 import 'package:is_project_1/pages/admin_pages/UploadEducationPage.dart';
+import 'package:is_project_1/pages/admin_pages/Moderate_safety_tips_page.dart';
 
 class AdminHomepage extends StatefulWidget {
   const AdminHomepage({super.key});
@@ -141,14 +142,23 @@ class _AdminHomepageState extends State<AdminHomepage> {
               badgeColor: Colors.red,
             ),
             const SizedBox(height: 12),
-            _buildActionItem(
-              icon: Icons.lightbulb,
-              iconColor: const Color(0xFF4FABCB),
-              title: 'Manage Safety Tips',
-              subtitle: 'Review and moderate content',
-              badge: '5',
-              badgeColor: Colors.red,
-            ),
+            InkWell(
+            onTap: () {
+            Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const ModerateSafetyTipsPage()),
+      );
+  },
+  child: _buildActionItem(
+    icon: Icons.lightbulb,
+    iconColor: Color(0xFF4FABCB),
+    title: 'Manage Safety Tips',
+    subtitle: 'Review and moderate content',
+    badge: '5',
+    badgeColor: Colors.red,
+  ),
+),
+
             const SizedBox(height: 12),
               InkWell(
               onTap: () {
