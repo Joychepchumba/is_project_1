@@ -28,6 +28,38 @@ class SafetyTip {
   }
 }
 
+class EducationalContent {
+  final String title;
+  final String content;
+  final double price;
+  final bool isPaid;
+  final String id;
+
+  EducationalContent({
+    required this.id,
+    required this.title,
+    required this.content,
+    required this.price,
+    required this.isPaid,
+  });
+
+  factory EducationalContent.fromJson(Map<String, dynamic> json) {
+   final rawPrice = json['price'];
+  final double safePrice = rawPrice != null
+      ? double.tryParse(rawPrice.toString()) ?? 0.0
+      : 0.0;
+
+
+  return EducationalContent(
+    id: json['id'],
+    title: json['title'] ?? 'Untitled',
+    content: json['content'] ?? '',
+    price: (json['price'] != null) ? double.tryParse(json['price'].toString()) ?? 0.0 : 0.0,
+    isPaid: json['is_paid'] ?? true,
+  );
+}
+}
+
 class _UserHomepageState extends State<UserHomepage> {
   ProfileResponse? profile;
   List<EmergencyContact> emergencyContacts = [];
@@ -35,12 +67,21 @@ class _UserHomepageState extends State<UserHomepage> {
   String? error;
   List<SafetyTip> safetyTips = [];
   bool tipsLoading = true;
+  List<EducationalContent> educationalItems = [];
+  bool eduLoading = true;
+  List<String> purchasedContentIds = [];
 
   @override
   void initState() {
     super.initState();
-    _loadProfileData();
+    _loadProfileData().then((_) {
+  final userId = profile?.id;
+  if (userId != null && userId != 0) {
+    _fetchPurchasedContentIds(userId.toString());
+  }
+});
     _fetchSafetyTips();
+    _fetchEducationalContent();
   }
 
   Future<void> _fetchSafetyTips() async {
@@ -58,6 +99,70 @@ class _UserHomepageState extends State<UserHomepage> {
   } catch (e) {
     print("Failed to load tips: $e");
     setState(() => tipsLoading = false);
+  }
+}
+
+ Future<void> _fetchEducationalContent() async {
+  try {
+    final res = await http.get(Uri.parse('https://de6f-41-90-176-14.ngrok-free.app/get_educational_content'));
+    if (res.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(res.body);
+      setState(() {
+        educationalItems = data.map((e) => EducationalContent.fromJson(e)).toList();
+        eduLoading = false;
+      });
+    } else {
+      setState(() => eduLoading = false);
+    }
+  } catch (e) {
+    print("Failed to fetch educational content: $e");
+    setState(() => eduLoading = false);
+  }
+}
+
+Future<void> _fetchPurchasedContentIds(String userId) async {
+  try {
+    final res = await http.get(Uri.parse('https://de6f-41-90-176-14.ngrok-free.app/user_purchases/$userId'));
+    if (res.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(res.body);
+      setState(() {
+        purchasedContentIds = data.cast<String>();
+      });
+    }
+  } catch (e) {
+    print("Failed to fetch purchased content IDs: $e");
+  }
+}
+
+Future<void> _startPayPalPayment(EducationalContent item) async {
+  final userId = profile?.id?.toString();
+  if (userId == null) return;
+
+  final response = await http.post(
+    Uri.parse('https://de6f-41-90-176-14.ngrok-free.app/create-order'),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode({
+      'user_id': userId,
+      'content_id': item.id,
+      'content_title': item.title,
+      'amount': '2.99', // Replace with item.price if you store it
+      'currency': 'KES',
+    }),
+  );
+
+  if (response.statusCode == 200) {
+    final data = jsonDecode(response.body);
+    final String? approvalUrl = data['approval_url'];
+    if (approvalUrl != null) {
+      final Uri payUrl = Uri.parse(approvalUrl);
+      if (await canLaunchUrl(payUrl)) {
+        await launchUrl(payUrl, mode: LaunchMode.externalApplication);
+      } else {
+        print("Couldn't open PayPal.");
+      }
+    }
+  } else {
+    print("PayPal error: ${response.body}");
   }
 }
 
@@ -472,29 +577,76 @@ class _UserHomepageState extends State<UserHomepage> {
   }
 
   Widget _buildEducationalContent() {
-    return Column(
-      children: [
-        _buildEducationalItem(
-          'Jiu-Jitsu',
-          'Get to learn Jiu-Jitsu and protect and defend yourself.',
-          'https://www.wikihow.com/images/thumb/4/49/Learn-Brazilian-Jiu%E2%80%90Jitsu-Step-12.jpg/v4-460px-Learn-Brazilian-Jiu%E2%80%90Jitsu-Step-12.jpg',
-        ),
-        const SizedBox(height: 16),
-        _buildEducationalItem(
-          'Karate',
-          'Learn basic Karate and self-defense tips.',
-          'https://images.unsplash.com/photo-1555597673-b21d5c935865?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1469&q=80',
-        ),
-      ],
-    );
+  if (eduLoading) {
+    return const Center(child: CircularProgressIndicator());
   }
 
-  Widget _buildEducationalItem(
-    String title,
-    String description,
-    String imageUrl,
-  ) {
-    return Container(
+  if (educationalItems.isEmpty) {
+    return const Text("No educational content available.");
+  }
+
+  return Column(
+    children: [
+      ...educationalItems.take(2).map(_buildEducationalItem).toList(),
+      const SizedBox(height: 8),
+      Align(
+        alignment: Alignment.centerRight,
+        child: TextButton(
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const SafetyTipsPage()), // You can replace this with EducationalContentPage() if needed
+            );
+          },
+          child: const Text("See all →", style: TextStyle(color: Colors.blue)),
+        ),
+      ),
+    ],
+  );
+}
+
+void _showBottomSheetContent(String content) {
+  showModalBottomSheet(
+    context: context,
+    builder: (context) {
+      return Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: SingleChildScrollView(
+          child: Text(content),
+        ),
+      );
+    },
+  );
+}
+
+
+Widget _buildEducationalItem(EducationalContent item) {
+  final bool isUnlocked = purchasedContentIds.contains(item.id);
+
+  return InkWell(
+    onTap: () async {
+      if (isUnlocked) {
+        _showBottomSheetContent(item.content);
+      } else {
+        final shouldPay = await showDialog<bool>(
+          context: context,
+          builder: (_) => AlertDialog(
+            title: const Text("Unlock Content"),
+            content: const Text("This is premium content. Do you want to purchase access?"),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel")),
+              TextButton(onPressed: () => Navigator.pop(context, true), child: const Text("Buy")),
+            ],
+          ),
+        );
+        // Handle purchase logic here if shouldPay == true
+        if (shouldPay == true) {
+          _startPayPalPayment(item);
+        }
+      }
+    },
+    child: Container(
+      margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -509,18 +661,6 @@ class _UserHomepageState extends State<UserHomepage> {
       ),
       child: Row(
         children: [
-          ClipRRect(
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(16),
-              bottomLeft: Radius.circular(16),
-            ),
-            child: Image.network(
-              imageUrl,
-              width: 80,
-              height: 80,
-              fit: BoxFit.cover,
-            ),
-          ),
           Expanded(
             child: Padding(
               padding: const EdgeInsets.all(16),
@@ -528,43 +668,43 @@ class _UserHomepageState extends State<UserHomepage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    title,
+                    item.title,
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: Colors.black87,
                     ),
                   ),
                   const SizedBox(height: 4),
-                  Text(
-                    description,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey,
-                      height: 1.3,
+                      if (item.isPaid && !isUnlocked)
+      Text(
+        "\KES ${item.price.toStringAsFixed(2)}",
+        style: const TextStyle(fontSize: 12, color: Colors.orange),
+      ),
+                  if (isUnlocked)
+                    Text(
+                      item.content,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                  ),
                 ],
               ),
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.grey.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(
-                Icons.lock_outline,
-                color: Colors.grey,
-                size: 20,
+          if (item.isPaid)
+            Padding(
+              padding: const EdgeInsets.only(right: 16),
+              child: Icon(
+                isUnlocked ? Icons.lock_open : Icons.lock_outline,
+                color: isUnlocked ? Colors.green : Colors.grey,
               ),
             ),
-          ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 }
