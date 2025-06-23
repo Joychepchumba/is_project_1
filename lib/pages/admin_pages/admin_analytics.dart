@@ -80,11 +80,13 @@ class _AdminAnalyticsPageState extends State<AdminAnalyticsPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildUsageMetricsCard(),
-                  const SizedBox(height: 20),
-                  _buildRevenueCard(),
-                  const SizedBox(height: 20),
-                  _buildDangerZonesCard(),
+                    _buildUsageMetricsCard(),
+                    const SizedBox(height: 20),
+                    _buildRevenueCard(),
+                    const SizedBox(height: 20),
+                    _buildDangerZonesCard(),
+                    const SizedBox(height: 20),
+                    _buildSafetyTipsCard(),
                 ],
               ),
             ),
@@ -368,6 +370,45 @@ final locations = List<Map<String, dynamic>>.from(rawZones)
       ),
     );
   }
+
+Widget _buildSafetyTipsCard() {
+  return Card(
+    elevation: 2,
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    child: Padding(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.lightbulb_outline, color: Colors.orange, size: 20),
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                'Safety Tip Metrics',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text('Total Tips: ${analytics['tips_total'] ?? 0}'),
+          Text('Verified: ${analytics['tips_verified'] ?? 0}'),
+          Text('Pending: ${analytics['tips_pending'] ?? 0}'),
+          Text('Submitters: ${analytics['tips_submitters'] ?? 0}'),
+          const SizedBox(height: 20),
+         const SizedBox(height: 12),
+        ],
+      ),
+    ),
+  );
+}
 
   Widget _buildLegendItem(String label, Color color) {
     return Row(
