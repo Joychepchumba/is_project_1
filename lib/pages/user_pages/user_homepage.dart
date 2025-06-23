@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:is_project_1/components/custom_bootom_navbar.dart';
-
 import 'package:is_project_1/models/profile_response.dart';
 import 'package:is_project_1/services/api_service.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:is_project_1/pages/user_pages/safety_tips_page.dart';
 
 class UserHomepage extends StatefulWidget {
   const UserHomepage({super.key});
@@ -12,17 +14,52 @@ class UserHomepage extends StatefulWidget {
   State<UserHomepage> createState() => _UserHomepageState();
 }
 
+class SafetyTip {
+  final String title;
+  final String content;
+
+  SafetyTip({required this.title, required this.content});
+
+  factory SafetyTip.fromJson(Map<String, dynamic> json) {
+    return SafetyTip(
+      title: json['title'] ?? 'Untitled',
+      content: json['content'] ?? '',
+    );
+  }
+}
+
 class _UserHomepageState extends State<UserHomepage> {
   ProfileResponse? profile;
   List<EmergencyContact> emergencyContacts = [];
   bool isLoading = true;
   String? error;
+  List<SafetyTip> safetyTips = [];
+  bool tipsLoading = true;
 
   @override
   void initState() {
     super.initState();
     _loadProfileData();
+    _fetchSafetyTips();
   }
+
+  Future<void> _fetchSafetyTips() async {
+  try {
+    final res = await http.get(Uri.parse('https://de6f-41-90-176-14.ngrok-free.app/get_tips'));
+    if (res.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(res.body);
+      setState(() {
+        safetyTips = data.map((e) => SafetyTip.fromJson(e)).toList();
+        tipsLoading = false;
+      });
+    } else {
+      setState(() => tipsLoading = false);
+    }
+  } catch (e) {
+    print("Failed to load tips: $e");
+    setState(() => tipsLoading = false);
+  }
+}
 
   Future<void> _loadProfileData() async {
     try {
@@ -360,42 +397,51 @@ class _UserHomepageState extends State<UserHomepage> {
   }
 
   Widget _buildSafetyTipsCard() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 6,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Basic Safety Tips:',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
-            ),
-          ),
-          const SizedBox(height: 12),
-          _buildSafetyTip('Always carry your phone with you.'),
-          const SizedBox(height: 8),
-          _buildSafetyTip(
-            'Always inform family and friends of your whereabouts and keep in constant contact.',
-          ),
-        ],
-      ),
-    );
+  if (tipsLoading) {
+    return const Center(child: CircularProgressIndicator());
   }
+
+  if (safetyTips.isEmpty) {
+    return const Text("No safety tips available.");
+  }
+
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      ...safetyTips.take(2).map((tip) => _buildExpandableTipCard(tip)).toList(),
+      const SizedBox(height: 8),
+      Align(
+        alignment: Alignment.centerRight,
+        child: TextButton(
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const SafetyTipsPage()),
+            );
+          },
+          child: const Text("See all →", style: TextStyle(color: Colors.blue)),
+        ),
+      ),
+    ],
+  );
+}
+
+  Widget _buildExpandableTipCard(SafetyTip tip) {
+  return Card(
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    elevation: 2,
+    margin: const EdgeInsets.only(bottom: 12),
+    child: ExpansionTile(
+      title: Text(tip.title, style: const TextStyle(fontWeight: FontWeight.w600)),
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
+          child: Text(tip.content),
+        )
+      ],
+    ),
+  );
+}
 
   Widget _buildSafetyTip(String tip) {
     return Row(
