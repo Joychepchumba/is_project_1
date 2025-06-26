@@ -167,219 +167,235 @@ class _AdminAnalyticsPageState extends State<AdminAnalyticsPage> {
     );
   }
 
-  Widget _buildRevenueCard() {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.green.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(Icons.trending_up, color: Colors.green, size: 20),
-                ),
-                const SizedBox(width: 12),
-                const Text('Revenue Generated', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
-              ],
-            ),
-            const SizedBox(height: 8),
-            const Text('Educational content revenue breakdown', style: TextStyle(color: Colors.grey, fontSize: 14)),
-            const SizedBox(height: 24),
-            SizedBox(
-              height: 200,
-              child: BarChart(
-                BarChartData(
-                  alignment: BarChartAlignment.spaceAround,
-                  maxY: (analytics['monthly_revenue'] != null && analytics['monthly_revenue'].isNotEmpty)
-                      ? analytics['monthly_revenue']
-                              .cast<Map<String, dynamic>>()
-.map((item) => (item['total'] ?? 0).toDouble())
-                              .reduce((a, b) => a > b ? a : b) +
-                          1
-                      : 10,
-                  barTouchData: BarTouchData(enabled: false),
-                  titlesData: FlTitlesData(
-                    show: true,
-                    bottomTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        getTitlesWidget: (value, meta) {
-                          final rawList = analytics['monthly_revenue'] ?? [];
-final months = List<Map<String, dynamic>>.from(rawList)
-    .map((item) => item['month'].toString())
-    .toList();
-                          if (value.toInt() < months.length) {
-                            return Transform.rotate(
-                              angle: -0.5,
-                              child: Text(months[value.toInt()], style: const TextStyle(fontSize: 9)),
-                            );
-                          }
-                          return const Text('');
-                        },
-                      ),
-                    ),
-                    leftTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        getTitlesWidget: (value, meta) {
-                          return Text(value.toInt().toString(), style: const TextStyle(fontSize: 10));
-                        },
-                      ),
-                    ),
-                    topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                    rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  ),
-                  gridData: FlGridData(
-                    show: true,
-                    drawVerticalLine: false,
-                    horizontalInterval: 10,
-                    getDrawingHorizontalLine: (value) =>
-                        FlLine(color: Colors.grey[300]!, strokeWidth: 1),
-                  ),
-                  borderData: FlBorderData(show: false),
-                  barGroups: List.generate(
-                    analytics['monthly_revenue']?.length ?? 0,
-                    (index) {
-                      final item = analytics['monthly_revenue'][index];
-                      return BarChartGroupData(
-                        x: index,
-                        barRods: [
-                          BarChartRodData(
-                            toY: (item['total'] ?? 0).toDouble(),
-                            rodStackItems: [],
-                            color: Colors.teal,
-                            width: 30,
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                        ],
-                      );
-                    },
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+Widget _buildRevenueCard() {
+  final totalRevenue = analytics['total_revenue'] ?? 0;
+  final topContent = analytics['top_content'] ?? [];
+  final recent = analytics['recent_purchases'] ?? [];
 
-  Widget _buildDangerZonesCard() {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.red.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(Icons.warning, color: Colors.red, size: 20),
-                ),
-                const SizedBox(width: 12),
-                const Text('Frequent Danger Zones', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
-              ],
-            ),
-            const SizedBox(height: 8),
-            const Text('Incident reports by location', style: TextStyle(color: Colors.grey, fontSize: 14)),
-            const SizedBox(height: 24),
-            SizedBox(
-              height: 200,
-              child: BarChart(
-                BarChartData(
-                  alignment: BarChartAlignment.spaceAround,
-                  maxY: 60,
-                  barTouchData: BarTouchData(enabled: false),
-                  titlesData: FlTitlesData(
-                    show: true,
-                    bottomTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        getTitlesWidget: (value, meta) {
-                          final rawZones = analytics['danger_zones'] ?? [];
-final locations = List<Map<String, dynamic>>.from(rawZones)
-    .map((zone) => zone['location_name'].toString())
-    .toList();
-                          if (value.toInt() < locations.length) {
-                            return Transform.rotate(
-                              angle: -0.5,
-                              child: Text(locations[value.toInt()], style: const TextStyle(fontSize: 9)),
-                            );
-                          }
-                          return const Text('');
-                        },
-                      ),
-                    ),
-                    leftTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        getTitlesWidget: (value, meta) {
-                          return Text(value.toInt().toString(), style: const TextStyle(fontSize: 10));
-                        },
-                      ),
-                    ),
-                    topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                    rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  ),
-                  gridData: FlGridData(
-                    show: true,
-                    drawVerticalLine: false,
-                    horizontalInterval: 10,
-                    getDrawingHorizontalLine: (value) =>
-                        FlLine(color: Colors.grey[300]!, strokeWidth: 1),
-                  ),
-                  borderData: FlBorderData(show: false),
-                  barGroups: List.generate(
-                    analytics['danger_zones']?.length ?? 0,
-                    (index) {
-                      final zone = analytics['danger_zones'][index];
-                      return BarChartGroupData(
-                        x: index,
-                        barRods: [
-                          BarChartRodData(
-                            toY: (zone['reported_count'] ?? 0).toDouble(),
-                            rodStackItems: [],
-                            color: Colors.red,
-                            width: 25,
-                            borderRadius: const BorderRadius.only(
-                              topLeft: Radius.circular(4),
-                              topRight: Radius.circular(4),
-                            ),
-                          ),
-                        ],
-                      );
-                    },
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-Widget _buildSafetyTipsCard() {
   return Card(
-    elevation: 2,
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    elevation: 3,
+    margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
     child: Padding(
       padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.trending_up, color: Colors.teal),
+              SizedBox(width: 8),
+              Text('Revenue Overview', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+            ],
+          ),
+          const SizedBox(height: 20),
+
+          Text("💰 Total Revenue Generated", style: TextStyle(color: Colors.grey[700], fontSize: 14)),
+          Text("KSh $totalRevenue",
+              style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w600, color: Colors.teal)),
+          const Divider(height: 32),
+
+          // Top Content in pill cards
+          if (topContent.isNotEmpty) ...[
+            const Text("🏆 Top Purchased Content", style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 12),
+            Column(
+              children: topContent.map<Widget>((item) {
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 10),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[100],
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.star, size: 18, color: Colors.amber),
+                      const SizedBox(width: 10),
+                      Expanded(child: Text(item['title'], style: const TextStyle(fontSize: 14))),
+                      Text("KSh ${item['total']}", style: const TextStyle(fontWeight: FontWeight.w600)),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ),
+            const Divider(height: 32),
+          ],
+
+          // Recent Purchases
+          const Text("🕒 Latest Purchases", style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 160,
+            child: ListView.builder(
+              itemCount: recent.length,
+              padding: EdgeInsets.zero,
+              itemBuilder: (context, index) {
+                final tx = recent[index];
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 10),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey.shade200),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.receipt_long, size: 18, color: Colors.blueGrey),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(tx['title'], style: const TextStyle(fontSize: 14)),
+                            Text(tx['date'], style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                          ],
+                        ),
+                      ),
+                      Text("KSh ${tx['amount']}", style: const TextStyle(fontWeight: FontWeight.w500)),
+                    ],
+                  ),
+                );
+              },
+            ),
+          )
+        ],
+      ),
+    ),
+  );
+}
+
+Widget _buildDangerZonesCard() {
+  final List zones = analytics['danger_zones'] ?? [];
+
+  return Card(
+    elevation: 3,
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+    child: Padding(
+      padding: const EdgeInsets.all(20),
+      child: zones.isEmpty
+          ? Center(
+              child: Text(
+                'No data available for danger zones.',
+                style: TextStyle(color: Colors.grey[600]),
+              ),
+            )
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.redAccent.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.warning_amber_rounded,
+                          color: Colors.redAccent, size: 24),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      'Frequent Danger Zones',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.redAccent.shade700,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                const Text(
+                  'Incident reports by location',
+                  style: TextStyle(color: Colors.grey, fontSize: 13),
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  height: 220,
+                  child: BarChart(
+                    BarChartData(
+                      maxY: zones.fold<double>(
+                          0, (max, z) => max > z['reported_count'] ? max : z['reported_count'].toDouble() + 10),
+                      alignment: BarChartAlignment.spaceBetween,
+                      barTouchData: BarTouchData(enabled: false),
+                      titlesData: FlTitlesData(
+                        leftTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            reservedSize: 28,
+                            getTitlesWidget: (val, _) => Text(
+                              val.toInt().toString(),
+                              style: TextStyle(fontSize: 10),
+                            ),
+                          ),
+                        ),
+                        bottomTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            getTitlesWidget: (value, _) {
+                              if (value.toInt() >= zones.length) return const SizedBox.shrink();
+                              final name = zones[value.toInt()]['location_name'];
+                              return Text(
+                                name.length > 8
+                                    ? '${name.substring(0, 6)}...'
+                                    : name,
+                                style: const TextStyle(fontSize: 10),
+                              );
+                            },
+                          ),
+                        ),
+                        topTitles: AxisTitles(
+                            sideTitles: SideTitles(showTitles: false)),
+                        rightTitles: AxisTitles(
+                            sideTitles: SideTitles(showTitles: false)),
+                      ),
+                      gridData: FlGridData(
+                        drawVerticalLine: false,
+                        horizontalInterval: 10,
+                        getDrawingHorizontalLine: (value) => FlLine(
+                          color: Colors.grey[300],
+                          strokeWidth: 1,
+                        ),
+                      ),
+                      borderData: FlBorderData(show: false),
+                      barGroups: List.generate(
+                        zones.length,
+                        (index) {
+                          final count = (zones[index]['reported_count'] ?? 0).toDouble();
+                          return BarChartGroupData(
+                            x: index,
+                            barRods: [
+                              BarChartRodData(
+                                toY: count,
+                                color: Colors.redAccent,
+                                width: 20,
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+    ),
+  );
+}
+
+Widget _buildSafetyTipsCard() {
+  final total = analytics['tips_total'] ?? 0;
+  final verified = analytics['tips_verified'] ?? 0;
+  final pending = analytics['tips_pending'] ?? 0;
+  final submitters = analytics['tips_submitters'] ?? 0;
+
+  return Card(
+    elevation: 3,
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+    child: Padding(
+      padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -388,28 +404,56 @@ Widget _buildSafetyTipsCard() {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.orange.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
+                  color: Colors.orangeAccent.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(Icons.lightbulb_outline, color: Colors.orange, size: 20),
+                child: const Icon(Icons.lightbulb_outline,
+                    color: Colors.orangeAccent, size: 22),
               ),
-              const SizedBox(width: 12),
-              const Text(
-                'Safety Tip Metrics',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+              const SizedBox(width: 10),
+              Text(
+                'Safety Tips',
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.orange.shade800,
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          Text('Total Tips: ${analytics['tips_total'] ?? 0}'),
-          Text('Verified: ${analytics['tips_verified'] ?? 0}'),
-          Text('Pending: ${analytics['tips_pending'] ?? 0}'),
-          Text('Submitters: ${analytics['tips_submitters'] ?? 0}'),
-          const SizedBox(height: 20),
-         const SizedBox(height: 12),
+          const SizedBox(height: 14),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _buildStat('Total', total, Colors.blue),
+              _buildStat('Verified', verified, Colors.green),
+              _buildStat('Pending', pending, Colors.amber.shade800),
+              _buildStat('Submitters', submitters, Colors.purple),
+            ],
+          ),
         ],
       ),
     ),
+  );
+}
+
+Widget _buildStat(String label, int value, Color color) {
+  return Column(
+    children: [
+      Text(
+        '$value',
+        style: TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
+          color: color,
+        ),
+      ),
+      const SizedBox(height: 4),
+      Text(
+        label,
+        style: const TextStyle(fontSize: 12, color: Colors.grey),
+      ),
+    ],
   );
 }
 

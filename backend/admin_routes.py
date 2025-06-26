@@ -98,24 +98,39 @@ def get_analytics_overview():
             .limit(5) \
             .execute()
 
-        # Revenue: purchases of educational content
+        # Revenue: total, top content, recent
         purchases = supabase.table("purchases") \
-            .select("purchased_at, educational_content(price)") \
+            .select("purchased_at, educational_content(title, price)") \
+            .order("purchased_at", desc=True) \
+            .limit(20) \
             .execute()
 
-        monthly_totals = defaultdict(float)
+        total_revenue = 0.0
+        top_content = defaultdict(float)
+        recent_purchases = []
+
         for p in purchases.data:
             try:
                 dt = datetime.fromisoformat(p["purchased_at"])
-                price = p.get("educational_content", {}).get("price", 0)
-                key = dt.strftime("%b-%y")  # e.g. "Jun-25"
-                monthly_totals[key] += float(price) / 1000  # Convert to thousands
+                content = p.get("educational_content", {})
+                title = content.get("title", "Unknown")
+                price = float(content.get("price", 0))
+
+                total_revenue += price
+                top_content[title] += price
+
+                recent_purchases.append({
+                    "date": dt.strftime("%b %d"),
+                    "title": title,
+                    "amount": int(price)
+                })
+
             except Exception:
                 continue
 
-        revenue_data = [{"month": k, "total": v} for k, v in sorted(monthly_totals.items())]
+        top_content_sorted = sorted(top_content.items(), key=lambda x: x[1], reverse=True)[:5]
+        top_content_data = [{"title": k, "total": int(v)} for k, v in top_content_sorted]
 
-        # Final response
         return {
             "users": len(users.data or []),
             "providers": len(providers.data or []),
@@ -125,7 +140,9 @@ def get_analytics_overview():
             "tips_pending": len(tips_pending.data or []),
             "tips_submitters": len(submitters),
             "danger_zones": danger_zones.data or [],
-            "monthly_revenue": revenue_data
+            "total_revenue": int(total_revenue),
+            "top_content": top_content_data,
+            "recent_purchases": recent_purchases
         }
 
     except Exception as e:

@@ -156,12 +156,12 @@ String _getTotalRevenue() {
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: _buildStatCard(
-                    'KES ${_getTotalRevenue()}',
-                     'REVENUE',
-                    Colors.orange,
-                  ),
-                ),
+                child: _buildStatCard(
+                  'KES ${analytics['total_revenue'] ?? '0'}',
+                  'TOTAL REVENUE GENERATED',
+                 Colors.orange,
+              ),
+            ),
               ],
             ),
             const SizedBox(height: 32),
