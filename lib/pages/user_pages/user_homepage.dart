@@ -64,6 +64,8 @@ class EducationalContent {
 }
 
 class _UserHomepageState extends State<UserHomepage> {
+  final String baseUrl = dotenv.env['BASE_URL']!;
+
   ProfileResponse? profile;
   List<EmergencyContact> emergencyContacts = [];
   bool isLoading = true;
@@ -196,89 +198,92 @@ class _UserHomepageState extends State<UserHomepage> {
     }
   }
 
-  Future<void> _startPaymentFlow(EducationalContent content) async {
-    final userId = profile?.id?.toString();
-    if (userId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("You must be logged in to purchase content.")),
-      );
-      return;
-    }
+ Future<void> _startPaymentFlow(EducationalContent content) async {
+  final userId = await _getUserIdFromToken(); // <-- FIXED
+  if (userId == null || userId == "0") {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("You must be logged in with a valid account to purchase.")),
+    );
+    return;
+  }
 
-    Future<void> capturePayment(String orderId, String contentId) async {
-      final String baseUrl = dotenv.env['BASE_URL']!;
-      final response = await http.post(
-        Uri.parse("$baseUrl/capture-order/$orderId"),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          "user_id": userId,
-          "content_id": contentId
-        }),
-      );
 
-      if (response.statusCode == 200) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Payment successful!")),
-        );
-        await _fetchPurchasedContentIds(userId);
-        setState(() {});
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Payment failed to capture.")),
-        );
-      }
-    }
-
-    final String baseUrl = dotenv.env['BASE_URL']!;
+  Future<void> capturePayment(String orderId, String contentId) async {
     final response = await http.post(
-      Uri.parse("$baseUrl/create-order"),
-      headers: {"Content-Type": "application/json"},
+      Uri.parse('$baseUrl/capture-order/$orderId'),
+      headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         "user_id": userId,
-        "content_id": content.id,
-        "content_title": content.title,
-        "amount": content.price.toString(),
-        "currency": "USD"
+        "content_id": contentId,
       }),
     );
 
-    if (response.statusCode != 200) {
+    if (response.statusCode == 200) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Failed to create PayPal order.")),
+        const SnackBar(content: Text("Payment successful!")),
       );
-      return;
+      await _fetchPurchasedContentIds(userId);
+      setState(() {});
+    } else {
+      print("Capture payment failed: ${response.statusCode} ${response.body}");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Payment failed to capture.")),
+      );
     }
+  }
 
-    final data = jsonDecode(response.body);
-    final String orderId = data["order_id"];
-    final String approvalUrl = data["approval_url"];
+  final response = await http.post(
+    Uri.parse('$baseUrl/create-order'),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode({
+      "user_id": userId,
+      "content_id": content.id,
+      "content_title": content.title,
+      "amount": content.price.toString(),
+      "currency": "USD",
+    }),
+  );
 
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => Scaffold(
-          appBar: AppBar(title: const Text("Complete Payment")),
-          body: WebViewWidget(
-            controller: WebViewController()
-              ..setJavaScriptMode(JavaScriptMode.unrestricted)
-              ..loadRequest(Uri.parse(approvalUrl))
-              ..setNavigationDelegate(
-                NavigationDelegate(
-                  onNavigationRequest: (nav) async {
-                    if (nav.url.contains("payment-success")) {
-                      await capturePayment(orderId, content.id);
-                      Navigator.pop(context, true);
-                      return NavigationDecision.prevent;
-                    }
-                    return NavigationDecision.navigate;
-                  },
-                ),
+  if (response.statusCode != 200) {
+    print("Create order failed: ${response.statusCode} ${response.body}");
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Failed to create PayPal order.")),
+    );
+    return;
+  }
+
+  final data = jsonDecode(response.body);
+  final orderId = data["order_id"];
+  final approvalUrl = data["approval_url"];
+
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (_) => Scaffold(
+        appBar: AppBar(title: const Text("Complete Payment")),
+        body: WebViewWidget(
+          controller: WebViewController()
+            ..setJavaScriptMode(JavaScriptMode.unrestricted)
+            ..loadRequest(Uri.parse(approvalUrl))
+            ..setNavigationDelegate(
+              NavigationDelegate(
+                onNavigationRequest: (nav) async {
+                  if (nav.url.contains("payment-success")) {
+                    await capturePayment(orderId, content.id);
+                    Navigator.pop(context, true);
+                    return NavigationDecision.prevent;
+                  }
+                  return NavigationDecision.navigate;
+                },
               ),
-          ),
+            ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
+
+
 
   @override
   Widget build(BuildContext context) {

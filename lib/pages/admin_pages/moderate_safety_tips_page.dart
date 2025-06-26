@@ -52,6 +52,44 @@ class _ModerateSafetyTipsPageState extends State<ModerateSafetyTipsPage> {
     }
   }
 
+  Future<void> _permanentlyDeleteTip(int tipId) async {
+    final response = await http.delete(Uri.parse('$baseUrl/safety_tips/$tipId'));
+    if (response.statusCode == 200) {
+      _loadSafetyTips();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Tip permanently deleted.")),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Failed to permanently delete tip.")),
+      );
+    }
+  }
+
+  void _confirmPermanentDelete(BuildContext context, int tipId) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("Permanently Delete"),
+        content: const Text("This action cannot be undone. Are you sure?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _permanentlyDeleteTip(tipId);
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text("Delete Permanently"),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showConfirmDelete(BuildContext context, int tipId) {
     showDialog(
       context: context,
@@ -104,6 +142,8 @@ class _ModerateSafetyTipsPageState extends State<ModerateSafetyTipsPage> {
                 onSelected: (value) {
                   if (value == 'deleted') {
                     _showConfirmDelete(context, tip['id']);
+                  } else if (value == 'permanently_delete') {
+                    _confirmPermanentDelete(context, tip['id']);
                   } else {
                     _updateTipStatus(tip['id'], value);
                   }
@@ -126,12 +166,23 @@ class _ModerateSafetyTipsPageState extends State<ModerateSafetyTipsPage> {
       'deleted': ['pending'],
     };
 
-    return transitions[currentStatus]?.map((status) {
+    final entries = transitions[currentStatus]?.map((status) {
       return PopupMenuItem(
         value: status,
         child: Text("Mark as ${status[0].toUpperCase()}${status.substring(1)}"),
       );
     }).toList() ?? [];
+
+    if (currentStatus == 'deleted') {
+      entries.add(
+        const PopupMenuItem(
+          value: 'permanently_delete',
+          child: Text("Permanently Delete", style: TextStyle(color: Colors.red)),
+        ),
+      );
+    }
+
+    return entries;
   }
 
   @override

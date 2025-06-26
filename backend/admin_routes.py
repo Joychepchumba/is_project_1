@@ -71,6 +71,14 @@ def update_safety_tip(tip_id: int, body: dict):
     supabase.table("safety_tips").update({"status": status}).eq("id", tip_id).execute()
     return {"message": f"Tip status set to {status}"}
 
+@router.delete("/safety_tips/{tip_id}")
+def delete_safety_tip(tip_id: int):
+    try:
+        supabase.table("safety_tips").delete().eq("id", tip_id).execute()
+        return {"message": "Safety tip permanently deleted"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error deleting safety tip: {str(e)}")
+
 
 
 # --- ANALYTICS OVERVIEW ---

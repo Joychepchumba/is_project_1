@@ -1,7 +1,8 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Path
 from pydantic import BaseModel
 from supabase import create_client, Client
 from fastapi.responses import RedirectResponse
+import traceback
 
 # Supabase credentials
 SUPABASE_URL = "https://ngfpaioekpicyvocxsbn.supabase.co"
@@ -27,6 +28,10 @@ class EducationalContent(BaseModel):
     price: float
     is_paid: bool = True
     uploaded_by: str
+
+class CapturePayment(BaseModel):
+    user_id: str
+    content_id: str
 
 # GET: Safety tips
 @router.get("/get_tips")
@@ -88,7 +93,7 @@ def paypal_checkout(user_id: str, content_id: str):
     paypal_url = f"https://www.sandbox.paypal.com/checkoutnow?user_id={user_id}&content_id={content_id}"
     return RedirectResponse(paypal_url)
 
-# NEW: Get content IDs purchased by a specific user
+# GET: Purchases for a user
 @router.get("/user_purchases/{user_id}")
 def get_user_purchases(user_id: str):
     try:
@@ -102,3 +107,21 @@ def get_user_purchases(user_id: str):
         return {"purchased_ids": content_ids}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching purchases: {str(e)}")
+
+# ✅ POST: Capture PayPal payment and record purchase
+@router.post("/capture-order/{order_id}")
+def capture_order(order_id: str = Path(...), payload: CapturePayment = ...):
+    try:
+        print(f"[DEBUG] Capturing order ID: {order_id}")
+        print(f"[DEBUG] user_id: {payload.user_id}, content_id: {payload.content_id}")
+
+        result = supabase.table("purchases").insert({
+            "user_id": payload.user_id,
+            "content_id": payload.content_id
+        }).execute()
+
+        print(f"[DEBUG] Supabase insert result: {result}")
+        return {"message": "Payment recorded"}
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Error capturing payment: {str(e)}")
