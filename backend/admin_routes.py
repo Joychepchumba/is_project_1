@@ -63,12 +63,14 @@ def get_safety_tips():
 @router.put("/safety_tips/{tip_id}")
 def update_safety_tip(tip_id: int, body: dict):
     status = body.get('status')
-    if status == "delete":
-        supabase.table("safety_tips").delete().eq("id", tip_id).execute()
-        return {"message": "Tip deleted"}
-    else:
-        supabase.table("safety_tips").update({"status": status}).eq("id", tip_id).execute()
-        return {"message": f"Tip status set to {status}"}
+
+    if status not in ["pending", "verified", "false", "deleted"]:
+        return {"error": f"Invalid status: {status}"}, 400
+
+    # Soft update the status field
+    supabase.table("safety_tips").update({"status": status}).eq("id", tip_id).execute()
+    return {"message": f"Tip status set to {status}"}
+
 
 
 # --- ANALYTICS OVERVIEW ---

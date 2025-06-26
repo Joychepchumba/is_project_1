@@ -12,6 +12,7 @@ class ModerateSafetyTipsPage extends StatefulWidget {
 
 class _ModerateSafetyTipsPageState extends State<ModerateSafetyTipsPage> {
   List<dynamic> safetyTips = [];
+  String selectedStatus = 'pending';
   final String baseUrl = dotenv.env['BASE_URL']!;
 
   @override
@@ -65,7 +66,7 @@ class _ModerateSafetyTipsPageState extends State<ModerateSafetyTipsPage> {
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
-              _updateTipStatus(tipId, 'delete');
+              _updateTipStatus(tipId, 'deleted');
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             child: const Text("Delete"),
@@ -75,6 +76,64 @@ class _ModerateSafetyTipsPageState extends State<ModerateSafetyTipsPage> {
     );
   }
 
+  Widget _buildFilteredList() {
+    final filtered = safetyTips.where((tip) => tip['status'] == selectedStatus).toList();
+    return ListView.builder(
+      itemCount: filtered.length,
+      itemBuilder: (context, index) => _buildTipCard(filtered[index]),
+    );
+  }
+
+  Widget _buildTipCard(dynamic tip) {
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      elevation: 2,
+      child: ExpansionTile(
+        title: Text(
+          tip['title'] ?? '(No Title)',
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+        children: [
+          Text(tip['content'] ?? '(No Content)'),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              PopupMenuButton<String>(
+                onSelected: (value) {
+                  if (value == 'deleted') {
+                    _showConfirmDelete(context, tip['id']);
+                  } else {
+                    _updateTipStatus(tip['id'], value);
+                  }
+                },
+                itemBuilder: (context) => _buildStatusOptions(tip['status']),
+                icon: const Icon(Icons.more_vert, size: 20),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  List<PopupMenuEntry<String>> _buildStatusOptions(String currentStatus) {
+    final Map<String, List<String>> transitions = {
+      'pending': ['verified', 'false', 'deleted'],
+      'verified': ['false', 'pending', 'deleted'],
+      'false': ['verified', 'pending'],
+      'deleted': ['pending'],
+    };
+
+    return transitions[currentStatus]?.map((status) {
+      return PopupMenuItem(
+        value: status,
+        child: Text("Mark as ${status[0].toUpperCase()}${status.substring(1)}"),
+      );
+    }).toList() ?? [];
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -82,55 +141,32 @@ class _ModerateSafetyTipsPageState extends State<ModerateSafetyTipsPage> {
         title: const Text('Moderate Safety Tips'),
         backgroundColor: const Color(0xFF4FABCB),
       ),
-      body: safetyTips.isEmpty
-          ? const Center(child: CircularProgressIndicator())
-          : ListView.builder(
-              itemCount: safetyTips.length,
-              itemBuilder: (context, index) {
-                final tip = safetyTips[index];
-                return Card(
-                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  elevation: 2,
-                  child: ExpansionTile(
-                    title: Text(
-                      tip['title'] ?? '(No Title)',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                    children: [
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          tip['content'] ?? '(No Content)',
-                          style: const TextStyle(fontSize: 14, color: Colors.black87),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          PopupMenuButton<String>(
-                            onSelected: (value) {
-                              if (value == 'delete') {
-                                _showConfirmDelete(context, tip['id']);
-                              } else {
-                                _updateTipStatus(tip['id'], value);
-                              }
-                            },
-                            itemBuilder: (context) => const [
-                              PopupMenuItem(value: 'verified', child: Text('Mark as Verified')),
-                              PopupMenuItem(value: 'false', child: Text('Flag as False')),
-                              PopupMenuItem(value: 'delete', child: Text('Delete')),
-                            ],
-                            icon: const Icon(Icons.more_vert, size: 20),
-                          ),
-                        ],
-                      ),
-                    ],
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Wrap(
+              spacing: 8,
+              children: ['pending', 'verified', 'false', 'deleted'].map((status) {
+                return ElevatedButton(
+                  onPressed: () {
+                    setState(() => selectedStatus = status);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: selectedStatus == status ? const Color(0xFF4FABCB) : const Color.fromARGB(255, 224, 224, 224),
                   ),
+                  child: Text(status[0].toUpperCase() + status.substring(1)),
                 );
-              },
+              }).toList(),
             ),
+          ),
+          Expanded(
+            child: safetyTips.isEmpty
+                ? const Center(child: CircularProgressIndicator())
+                : _buildFilteredList(),
+          ),
+        ],
+      ),
     );
   }
 }

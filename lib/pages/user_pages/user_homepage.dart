@@ -589,7 +589,7 @@ Widget _buildQuickActionItem(IconData icon, String label, Color color) {
     );
   }
 
-  Widget _buildSafetyTipsCard() {
+ Widget _buildSafetyTipsCard() {
   if (tipsLoading) {
     return const Center(child: CircularProgressIndicator());
   }
@@ -603,31 +603,37 @@ Widget _buildQuickActionItem(IconData icon, String label, Color color) {
     children: [
       ...safetyTips.take(2).map((tip) => _buildExpandableTipCard(tip)).toList(),
       const SizedBox(height: 8),
-      Align(
-        alignment: Alignment.centerRight,
-        child: TextButton(
+      Center(
+        child: ElevatedButton(
           onPressed: () async {
-  final refreshed = await Navigator.push(
-    context,
-    MaterialPageRoute(builder: (_) => const SafetyTipsPage()),
-  );
+            final refreshed = await Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const SafetyTipsPage()),
+            );
 
-  if (refreshed == true) {
-    final userId = profile?.id?.toString();
-    if (userId != null) {
-      await _fetchPurchasedContentIds(userId);
-      setState(() {});
-    }
-  }
-},
-          child: const Text("See all →", style: TextStyle(color: Colors.blue)),
+            if (refreshed == true) {
+              final userId = profile?.id?.toString();
+              if (userId != null) {
+                await _fetchPurchasedContentIds(userId);
+                setState(() {});
+              }
+            }
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF4FABCB),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          ),
+          child: const Text(
+            "See All",
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+          ),
         ),
       ),
     ],
   );
 }
 
-  Widget _buildExpandableTipCard(SafetyTip tip) {
+Widget _buildExpandableTipCard(SafetyTip tip) {
   return Card(
     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
     elevation: 2,
@@ -644,35 +650,35 @@ Widget _buildQuickActionItem(IconData icon, String label, Color color) {
   );
 }
 
-  Widget _buildSafetyTip(String tip) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          margin: const EdgeInsets.only(top: 6),
-          width: 6,
-          height: 6,
-          decoration: const BoxDecoration(
-            color: Colors.blue,
-            shape: BoxShape.circle,
+Widget _buildSafetyTip(String tip) {
+  return Row(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Container(
+        margin: const EdgeInsets.only(top: 6),
+        width: 6,
+        height: 6,
+        decoration: const BoxDecoration(
+          color: Colors.blue,
+          shape: BoxShape.circle,
+        ),
+      ),
+      const SizedBox(width: 12),
+      Expanded(
+        child: Text(
+          tip,
+          style: const TextStyle(
+            fontSize: 14,
+            color: Colors.black87,
+            height: 1.4,
           ),
         ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Text(
-            tip,
-            style: const TextStyle(
-              fontSize: 14,
-              color: Colors.black87,
-              height: 1.4,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
+      ),
+    ],
+  );
+}
 
-  Widget _buildEducationalContent() {
+Widget _buildEducationalContent() {
   if (eduLoading) {
     return const Center(child: CircularProgressIndicator());
   }
@@ -685,29 +691,36 @@ Widget _buildQuickActionItem(IconData icon, String label, Color color) {
     children: [
       ...educationalItems.take(2).map(_buildEducationalItem).toList(),
       const SizedBox(height: 8),
-      Align(
-        alignment: Alignment.centerRight,
-        child: TextButton(
+      Center(
+        child: ElevatedButton(
           onPressed: () async {
-  final refreshed = await Navigator.push(
-    context,
-    MaterialPageRoute(builder: (_) => const SafetyTipsPage()),
-  );
+            final refreshed = await Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const SafetyTipsPage()),
+            );
 
-  if (refreshed == true) {
-    final userId = profile?.id?.toString();
-    if (userId != null) {
-      await _fetchPurchasedContentIds(userId);
-      setState(() {});
-    }
-  }
-},
-          child: const Text("See all →", style: TextStyle(color: Colors.blue)),
+            if (refreshed == true) {
+              final userId = profile?.id?.toString();
+              if (userId != null) {
+                await _fetchPurchasedContentIds(userId);
+                setState(() {});
+              }
+            }
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF4FABCB),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          ),
+          child: const Text(
+            "See All",
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+          ),
         ),
       ),
     ],
   );
 }
+
 
 void _showBottomSheetContent(String content) {
   showModalBottomSheet(

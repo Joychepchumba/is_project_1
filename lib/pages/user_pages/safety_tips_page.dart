@@ -338,7 +338,10 @@ onNavigationRequest: (nav) async {
   @override
   Widget build(BuildContext context) {
     final filteredTips = safetyTips.where((tip) =>
-        selectedCategory == 'All' || (tip['category']?.toString() == selectedCategory)).toList();
+  tip['status'] != 'deleted' &&
+  (selectedCategory == 'All' || (tip['category']?.toString() == selectedCategory))
+).toList();
+
 
     return Scaffold(
       appBar: AppBar(title: const Text('Safety & Learning')),
@@ -484,14 +487,48 @@ onNavigationRequest: (nav) async {
           ),
           const SizedBox(height: 12),
           // Display filtered safety tips
-          ...filteredTips.map((tip) => Card(
-                margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
-                child: ListTile(
-                  title: Text(tip['title']),
-                  subtitle: Text('Category: ${tip['category']}'),
-                  onTap: () => _showBottomSheetContent(tip),
+          ...filteredTips.map((tip) {
+  final isFlagged = tip['status'] == 'false';
+  return Card(
+    margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
+    shape: RoundedRectangleBorder(
+      side: isFlagged
+          ? const BorderSide(color: Colors.red, width: 2)
+          : BorderSide.none,
+      borderRadius: BorderRadius.circular(8),
+    ),
+    color: isFlagged ? Colors.red.shade50 : null,
+    child: ListTile(
+      title: Text(
+        tip['title'],
+        style: TextStyle(
+          color: isFlagged ? Colors.red.shade800 : null,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Category: ${tip['category']}'),
+          if (isFlagged)
+            const Padding(
+              padding: EdgeInsets.only(top: 4.0),
+              child: Text(
+                '⚠️ This tip has been flagged as false by moderators.',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontStyle: FontStyle.italic,
+                  color: Colors.red,
                 ),
-              )),
+              ),
+            ),
+        ],
+      ),
+      onTap: () => _showBottomSheetContent(tip),
+    ),
+  );
+})
+,
           const SizedBox(height: 80),
         ],
       ),
