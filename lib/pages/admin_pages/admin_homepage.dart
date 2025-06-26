@@ -4,6 +4,8 @@ import 'package:is_project_1/pages/admin_pages/UploadEducationPage.dart';
 import 'package:is_project_1/pages/admin_pages/Moderate_safety_tips_page.dart';
 import 'package:is_project_1/pages/admin_pages/verify_providers.dart';
 import 'package:is_project_1/pages/admin_pages/admin_analytics.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -28,8 +30,9 @@ void initState() {
 }
 
 Future<void> _fetchDashboardData() async {
-  final analyticsRes = await http.get(Uri.parse('https://de6f-41-90-176-14.ngrok-free.app/analytics/overview'));
-  final providerStatsRes = await http.get(Uri.parse('https://de6f-41-90-176-14.ngrok-free.app/provider_stats'));
+  final String baseUrl = dotenv.env['BASE_URL']!;
+  final analyticsRes = await http.get(Uri.parse('$baseUrl/analytics/overview'));
+  final providerStatsRes = await http.get(Uri.parse('$baseUrl/provider_stats'));
 
   print("analyticsRes: ${analyticsRes.body}");
   print("providerStatsRes: ${providerStatsRes.body}");

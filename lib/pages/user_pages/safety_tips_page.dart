@@ -2,11 +2,13 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:is_project_1/components/custom_bootom_navbar.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 
 class SafetyTipsPage extends StatefulWidget {
-  const SafetyTipsPage({super.key});
+  final bool showUploadDialog;
+  const SafetyTipsPage({super.key, this.showUploadDialog = false});
 
   @override
   State<SafetyTipsPage> createState() => _SafetyTipsPageState();
@@ -30,17 +32,23 @@ class _SafetyTipsPageState extends State<SafetyTipsPage> {
   ];
 
   final int _selectedIndex = 2;
-  final String baseUrl = 'https://de6f-41-90-176-14.ngrok-free.app';
+  final String baseUrl = dotenv.env['BASE_URL']!;
 
-  @override
-  void initState() {
-    super.initState();
-    fetchUserIdFromToken().then((_) {
-      fetchSafetyTips();
-      fetchEducationalContent();
-      fetchPurchasedContentIds();
-    });
-  }
+
+@override
+void initState() {
+  super.initState();
+  fetchUserIdFromToken().then((_) {
+    fetchSafetyTips();
+    fetchEducationalContent();
+    fetchPurchasedContentIds();
+    if (widget.showUploadDialog) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _showAddTipDialog();
+      });
+    }
+  });
+}
 
   Future<void> fetchUserIdFromToken() async {
     final prefs = await SharedPreferences.getInstance();
@@ -309,16 +317,16 @@ Future<void> _startPaymentFlow(Map<String, dynamic> content) async {
             ..loadRequest(Uri.parse(approvalUrl))
             ..setNavigationDelegate(
               NavigationDelegate(
-                onNavigationRequest: (nav) {
-                  // Detect when the URL indicates payment success
-                  if (nav.url.contains("payment-success")) {
-                    Navigator.pop(context); // close the WebView page
-                    capturePayment(orderId, content['id']);
-                    return NavigationDecision.prevent;
-                  }
-                  // Optionally handle cancel URL similarly
-                  return NavigationDecision.navigate;
-                },
+onNavigationRequest: (nav) async {
+  // Detect when the URL indicates payment success
+  if (nav.url.contains("payment-success")) {
+    await capturePayment(orderId, content['id']);
+    Navigator.pop(context, true);
+    return NavigationDecision.prevent;
+  }
+  // Optionally handle cancel URL similarly
+  return NavigationDecision.navigate;
+},
               ),
             ),
         ),
@@ -363,13 +371,31 @@ Future<void> _startPaymentFlow(Map<String, dynamic> content) async {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           elevation: 3,
           child: InkWell(
-            onTap: () {
+            onTap: () async {
   if (isUnlocked) {
     _showBottomSheetContent(content);
   } else {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Please unlock this content first.")),
+    final shouldPay = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("Unlock Content"),
+        content: Text("This item costs KES ${content['price']}. Would you like to proceed?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Cancel"),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text("Buy"),
+          ),
+        ],
+      ),
     );
+
+    if (shouldPay == true) {
+      _startPaymentFlow(content);
+    }
   }
 },
             child: Padding(
@@ -390,7 +416,29 @@ Future<void> _startPaymentFlow(Map<String, dynamic> content) async {
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Color(0xFF4FABCB),
                             ),
-                            onPressed: () => _startPaymentFlow(content),
+                           onPressed: () async {
+                            final shouldPay = await showDialog<bool>(
+                            context: context,
+                            builder: (_) => AlertDialog(
+                              title: const Text("Unlock Content"),
+                              content: Text("This item costs KES ${content['price']}. Would you like to proceed?"),
+                              actions: [
+                                 TextButton(
+                                   onPressed: () => Navigator.pop(context, false),
+                                   child: const Text("Cancel"),
+                                  ),
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context, true),
+                                  child: const Text("Buy"),
+                               ),
+                            ],
+                            ),
+ );
+
+  if (shouldPay == true) {
+    _startPaymentFlow(content);
+  }
+},
                             child: const Text("Unlock"),
                           ),
                   ),
@@ -454,7 +502,7 @@ Future<void> _startPaymentFlow(Map<String, dynamic> content) async {
               backgroundColor: const Color(0xFF4FABCB),
               child: const Icon(Icons.add),
             ),
-      bottomNavigationBar: CustomBottomNavigationBar(currentIndex: _selectedIndex),
+      // bottomNavigationBar: CustomBottomNavigationBar(currentIndex: _selectedIndex),
     );
   }
 }

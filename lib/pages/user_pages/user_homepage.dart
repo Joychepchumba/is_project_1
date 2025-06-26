@@ -5,7 +5,11 @@ import 'package:is_project_1/services/api_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:is_project_1/pages/user_pages/safety_tips_page.dart';
+import 'package:webview_flutter/webview_flutter.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 
 class UserHomepage extends StatefulWidget {
   const UserHomepage({super.key});
@@ -44,20 +48,19 @@ class EducationalContent {
   });
 
   factory EducationalContent.fromJson(Map<String, dynamic> json) {
-   final rawPrice = json['price'];
-  final double safePrice = rawPrice != null
-      ? double.tryParse(rawPrice.toString()) ?? 0.0
-      : 0.0;
+    final rawPrice = json['price'];
+    final double safePrice = rawPrice != null
+        ? double.tryParse(rawPrice.toString()) ?? 0.0
+        : 0.0;
 
-
-  return EducationalContent(
-    id: json['id'],
-    title: json['title'] ?? 'Untitled',
-    content: json['content'] ?? '',
-    price: (json['price'] != null) ? double.tryParse(json['price'].toString()) ?? 0.0 : 0.0,
-    isPaid: json['is_paid'] ?? true,
-  );
-}
+    return EducationalContent(
+      id: json['id'],
+      title: json['title'] ?? 'Untitled',
+      content: json['content'] ?? '',
+      price: safePrice,
+      isPaid: json['is_paid'] ?? true,
+    );
+  }
 }
 
 class _UserHomepageState extends State<UserHomepage> {
@@ -74,130 +77,207 @@ class _UserHomepageState extends State<UserHomepage> {
   @override
   void initState() {
     super.initState();
-    _loadProfileData().then((_) {
-  final userId = profile?.id;
-  if (userId != null && userId != 0) {
-    _fetchPurchasedContentIds(userId.toString());
-  }
-});
+    _loadProfileData().then((_) async {
+      final userId = await _getUserIdFromToken();
+      if (userId != null) {
+        _fetchPurchasedContentIds(userId);
+      } else {
+        print("Failed to get user ID from token");
+      }
+    });
+
     _fetchSafetyTips();
     _fetchEducationalContent();
   }
 
-  Future<void> _fetchSafetyTips() async {
+  Future<void> _loadProfileData() async {
   try {
-    final res = await http.get(Uri.parse('https://de6f-41-90-176-14.ngrok-free.app/get_tips'));
-    if (res.statusCode == 200) {
-      final List<dynamic> data = jsonDecode(res.body);
-      setState(() {
-        safetyTips = data.map((e) => SafetyTip.fromJson(e)).toList();
-        tipsLoading = false;
-      });
-    } else {
+    setState(() {
+      isLoading = true;
+      error = null;
+    });
+
+    // Load profile data
+    final profileData = await ApiService.getProfile();
+
+    List<EmergencyContact> contacts = [];
+    if (profileData.roleId == 5) {
+      try {
+        contacts = await ApiService.getEmergencyContacts();
+      } catch (e) {
+        print('Failed to load emergency contacts: \$e');
+      }
+    }
+
+    setState(() {
+      profile = profileData;
+      emergencyContacts = contacts;
+      isLoading = false;
+    });
+  } catch (e) {
+    setState(() {
+      error = e.toString();
+      isLoading = false;
+    });
+  }
+}
+
+  Future<void> _fetchSafetyTips() async {
+    try {
+      final String baseUrl = dotenv.env['BASE_URL']!;
+      final res = await http.get(Uri.parse('$baseUrl/get_tips'));
+      if (res.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(res.body);
+        setState(() {
+          safetyTips = data.map((e) => SafetyTip.fromJson(e)).toList();
+          tipsLoading = false;
+        });
+      } else {
+        setState(() => tipsLoading = false);
+        print("Failed to load safety tips: \${res.body}");
+      }
+    } catch (e) {
+      print("Failed to load tips: \$e");
       setState(() => tipsLoading = false);
     }
-  } catch (e) {
-    print("Failed to load tips: $e");
-    setState(() => tipsLoading = false);
   }
-}
 
- Future<void> _fetchEducationalContent() async {
-  try {
-    final res = await http.get(Uri.parse('https://de6f-41-90-176-14.ngrok-free.app/get_educational_content'));
-    if (res.statusCode == 200) {
-      final List<dynamic> data = jsonDecode(res.body);
-      setState(() {
-        educationalItems = data.map((e) => EducationalContent.fromJson(e)).toList();
-        eduLoading = false;
-      });
-    } else {
+  Future<String?> _getUserIdFromToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('access_token');
+    if (token != null) {
+      try {
+        final payload = token.split('.')[1];
+        final normalized = base64Url.normalize(payload);
+        final decoded = utf8.decode(base64Url.decode(normalized));
+        final payloadMap = json.decode(decoded);
+        return payloadMap['sub']?.toString();
+      } catch (e) {
+        print('JWT decode error: \$e');
+      }
+    }
+    return null;
+  }
+
+  Future<void> _fetchEducationalContent() async {
+    try {
+      final String baseUrl = dotenv.env['BASE_URL']!;
+      final res = await http.get(Uri.parse('$baseUrl/get_educational_content'));
+      if (res.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(res.body);
+        setState(() {
+          educationalItems = data.map((e) => EducationalContent.fromJson(e)).toList();
+          eduLoading = false;
+        });
+      } else {
+        setState(() => eduLoading = false);
+      }
+    } catch (e) {
+      print("Failed to fetch educational content: \$e");
       setState(() => eduLoading = false);
     }
-  } catch (e) {
-    print("Failed to fetch educational content: $e");
-    setState(() => eduLoading = false);
   }
-}
 
-Future<void> _fetchPurchasedContentIds(String userId) async {
-  try {
-    final res = await http.get(Uri.parse('https://de6f-41-90-176-14.ngrok-free.app/user_purchases/$userId'));
-    if (res.statusCode == 200) {
-      final List<dynamic> data = jsonDecode(res.body);
-      setState(() {
-        purchasedContentIds = data.cast<String>();
-      });
-    }
-  } catch (e) {
-    print("Failed to fetch purchased content IDs: $e");
-  }
-}
-
-Future<void> _startPayPalPayment(EducationalContent item) async {
-  final userId = profile?.id?.toString();
-  if (userId == null) return;
-
-  final response = await http.post(
-    Uri.parse('https://de6f-41-90-176-14.ngrok-free.app/create-order'),
-    headers: {'Content-Type': 'application/json'},
-    body: jsonEncode({
-      'user_id': userId,
-      'content_id': item.id,
-      'content_title': item.title,
-      'amount': '2.99', // Replace with item.price if you store it
-      'currency': 'KES',
-    }),
-  );
-
-  if (response.statusCode == 200) {
-    final data = jsonDecode(response.body);
-    final String? approvalUrl = data['approval_url'];
-    if (approvalUrl != null) {
-      final Uri payUrl = Uri.parse(approvalUrl);
-      if (await canLaunchUrl(payUrl)) {
-        await launchUrl(payUrl, mode: LaunchMode.externalApplication);
-      } else {
-        print("Couldn't open PayPal.");
-      }
-    }
-  } else {
-    print("PayPal error: ${response.body}");
-  }
-}
-
-  Future<void> _loadProfileData() async {
+  Future<void> _fetchPurchasedContentIds(String userId) async {
     try {
-      setState(() {
-        isLoading = true;
-        error = null;
-      });
-
-      // Load profile data
-      final profileData = await ApiService.getProfile();
-
-      List<EmergencyContact> contacts = [];
-      // Only load emergency contacts for role_id == 5
-      if (profileData.roleId == 5) {
-        try {
-          contacts = await ApiService.getEmergencyContacts();
-        } catch (e) {
-          // Emergency contacts are optional, don't fail the whole page
-          print('Failed to load emergency contacts: $e');
-        }
+      final String baseUrl = dotenv.env['BASE_URL']!;
+      final res = await http.get(Uri.parse('$baseUrl/user_purchases/$userId'));
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        setState(() {
+          purchasedContentIds = List<String>.from(data['purchased_ids']);
+        });
+        print("Purchased content: \$purchasedContentIds");
+      } else {
+        print("Failed to fetch purchases: \${res.body}");
       }
-
-      setState(() {
-        profile = profileData;
-        emergencyContacts = contacts;
-        isLoading = false;
-      });
     } catch (e) {
-      setState(() {
-        error = e.toString();
-        isLoading = false;
-      });
+      print("Error fetching purchases: \$e");
     }
+  }
+
+  Future<void> _startPaymentFlow(EducationalContent content) async {
+    final userId = profile?.id?.toString();
+    if (userId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("You must be logged in to purchase content.")),
+      );
+      return;
+    }
+
+    Future<void> capturePayment(String orderId, String contentId) async {
+      final String baseUrl = dotenv.env['BASE_URL']!;
+      final response = await http.post(
+        Uri.parse("$baseUrl/capture-order/$orderId"),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          "user_id": userId,
+          "content_id": contentId
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Payment successful!")),
+        );
+        await _fetchPurchasedContentIds(userId);
+        setState(() {});
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Payment failed to capture.")),
+        );
+      }
+    }
+
+    final String baseUrl = dotenv.env['BASE_URL']!;
+    final response = await http.post(
+      Uri.parse("$baseUrl/create-order"),
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({
+        "user_id": userId,
+        "content_id": content.id,
+        "content_title": content.title,
+        "amount": content.price.toString(),
+        "currency": "USD"
+      }),
+    );
+
+    if (response.statusCode != 200) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Failed to create PayPal order.")),
+      );
+      return;
+    }
+
+    final data = jsonDecode(response.body);
+    final String orderId = data["order_id"];
+    final String approvalUrl = data["approval_url"];
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => Scaffold(
+          appBar: AppBar(title: const Text("Complete Payment")),
+          body: WebViewWidget(
+            controller: WebViewController()
+              ..setJavaScriptMode(JavaScriptMode.unrestricted)
+              ..loadRequest(Uri.parse(approvalUrl))
+              ..setNavigationDelegate(
+                NavigationDelegate(
+                  onNavigationRequest: (nav) async {
+                    if (nav.url.contains("payment-success")) {
+                      await capturePayment(orderId, content.id);
+                      Navigator.pop(context, true);
+                      return NavigationDecision.prevent;
+                    }
+                    return NavigationDecision.navigate;
+                  },
+                ),
+              ),
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -387,13 +467,21 @@ Future<void> _startPayPalPayment(EducationalContent item) async {
     );
   }
 
-  Widget _buildQuickActionItem(IconData icon, String label, Color color) {
-    return GestureDetector(
-      onTap: () {
-        // Handle quick action tap
-      },
-      child: Column(
-        children: [
+Widget _buildQuickActionItem(IconData icon, String label, Color color) {
+  return GestureDetector(
+    onTap: () {
+      if (label == 'Upload Safety Tip') {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const SafetyTipsPage(showUploadDialog: true),
+          ),
+        );
+      }
+      // Add more actions for other labels if needed
+    },
+    child: Column(
+      children: [
           Container(
             width: 60,
             height: 60,
@@ -518,12 +606,20 @@ Future<void> _startPayPalPayment(EducationalContent item) async {
       Align(
         alignment: Alignment.centerRight,
         child: TextButton(
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const SafetyTipsPage()),
-            );
-          },
+          onPressed: () async {
+  final refreshed = await Navigator.push(
+    context,
+    MaterialPageRoute(builder: (_) => const SafetyTipsPage()),
+  );
+
+  if (refreshed == true) {
+    final userId = profile?.id?.toString();
+    if (userId != null) {
+      await _fetchPurchasedContentIds(userId);
+      setState(() {});
+    }
+  }
+},
           child: const Text("See all →", style: TextStyle(color: Colors.blue)),
         ),
       ),
@@ -592,12 +688,20 @@ Future<void> _startPayPalPayment(EducationalContent item) async {
       Align(
         alignment: Alignment.centerRight,
         child: TextButton(
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const SafetyTipsPage()), // You can replace this with EducationalContentPage() if needed
-            );
-          },
+          onPressed: () async {
+  final refreshed = await Navigator.push(
+    context,
+    MaterialPageRoute(builder: (_) => const SafetyTipsPage()),
+  );
+
+  if (refreshed == true) {
+    final userId = profile?.id?.toString();
+    if (userId != null) {
+      await _fetchPurchasedContentIds(userId);
+      setState(() {});
+    }
+  }
+},
           child: const Text("See all →", style: TextStyle(color: Colors.blue)),
         ),
       ),
@@ -621,7 +725,8 @@ void _showBottomSheetContent(String content) {
 
 
 Widget _buildEducationalItem(EducationalContent item) {
-  final bool isUnlocked = purchasedContentIds.contains(item.id);
+  final unlockedIds = purchasedContentIds.map((e) => e.toString()).toList();
+final isUnlocked = unlockedIds.contains(item.id.toString());
 
   return InkWell(
     onTap: () async {
@@ -641,7 +746,8 @@ Widget _buildEducationalItem(EducationalContent item) {
         );
         // Handle purchase logic here if shouldPay == true
         if (shouldPay == true) {
-          _startPayPalPayment(item);
+          _startPaymentFlow(item);
+
         }
       }
     },

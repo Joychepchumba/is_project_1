@@ -3,7 +3,6 @@ import 'package:is_project_1/pages/user_pages/map_page.dart';
 import 'package:is_project_1/pages/profile_page.dart';
 import 'package:is_project_1/pages/user_pages/user_homepage.dart';
 import 'package:is_project_1/pages/user_pages/user_legalaid.dart';
-import 'package:is_project_1/pages/user_pages/safety_tips_page.dart';
 
 class CustomBottomNavigationBar extends StatelessWidget {
   final dynamic currentIndex;
@@ -41,14 +40,7 @@ class CustomBottomNavigationBar extends StatelessWidget {
           (route) => false,
         );
         break;
-        case 3:
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (context) => const SafetyTipsPage()),
-          (route) => false,
-        );
-        break;
-      case 4:
+      case 3:
         // Navigate to Profile
         Navigator.pushAndRemoveUntil(
           context,
@@ -78,9 +70,6 @@ class CustomBottomNavigationBar extends StatelessWidget {
           icon: Icon(Icons.map), // Map icon
           label: 'Maps',
         ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.shield), 
-        label: 'Tips'),
         BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
       ],
     );

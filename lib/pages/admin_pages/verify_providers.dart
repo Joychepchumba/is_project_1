@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:is_project_1/components/custom_admin.navbar.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 
 class VerifyProvidersPage extends StatefulWidget {
   const VerifyProvidersPage({super.key});
@@ -14,7 +16,7 @@ class _VerifyProvidersPageState extends State<VerifyProvidersPage> {
   List<dynamic> pendingProviders = [];
   int totalCount = 0;
   int pendingCount = 0;
-  final String baseUrl = "https://de6f-41-90-176-14.ngrok-free.app";
+  final String baseUrl = dotenv.env['BASE_URL']!;
 
   @override
   void initState() {
@@ -370,48 +372,4 @@ Future<void> _verifyProvider(String providerId) async {
     );
   }
 
-  Widget _buildBottomNavigationBar() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.2),
-            spreadRadius: 1,
-            blurRadius: 4,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      child: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: Colors.white,
-        selectedItemColor: const Color(0xFF7BB3C7),
-        unselectedItemColor: Colors.grey[400],
-        elevation: 0,
-        currentIndex: 1, // Verify tab selected
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.verified_user),
-            label: 'Verify',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.analytics_outlined),
-            label: 'Analytics',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline),
-            label: 'Profile',
-          ),
-        ],
-        onTap: (index) {
-          // Handle navigation
-        },
-      ),
-    );
-  }
 }

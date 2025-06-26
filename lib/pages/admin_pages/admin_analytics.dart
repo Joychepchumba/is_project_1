@@ -3,6 +3,8 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:is_project_1/components/custom_admin.navbar.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 
 class AdminAnalyticsPage extends StatefulWidget {
   const AdminAnalyticsPage({super.key});
@@ -22,7 +24,8 @@ class _AdminAnalyticsPageState extends State<AdminAnalyticsPage> {
   }
 
   Future<void> _fetchAnalytics() async {
-    final response = await http.get(Uri.parse('https://de6f-41-90-176-14.ngrok-free.app/analytics/overview'));
+    final String baseUrl = dotenv.env['BASE_URL']!;
+    final response = await http.get(Uri.parse('$baseUrl/analytics/overview'));
     if (response.statusCode == 200) {
       setState(() {
         analytics = jsonDecode(response.body);

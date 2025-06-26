@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class ModerateSafetyTipsPage extends StatefulWidget {
   const ModerateSafetyTipsPage({super.key});
@@ -11,7 +12,7 @@ class ModerateSafetyTipsPage extends StatefulWidget {
 
 class _ModerateSafetyTipsPageState extends State<ModerateSafetyTipsPage> {
   List<dynamic> safetyTips = [];
-  final String baseUrl = "https://de6f-41-90-176-14.ngrok-free.app"; // Replace with your backend URL
+  final String baseUrl = dotenv.env['BASE_URL']!;
 
   @override
   void initState() {
