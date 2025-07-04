@@ -1,14 +1,17 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+
 import 'package:is_project_1/components/app_logo.dart';
 import 'package:is_project_1/components/my_button.dart';
 import 'package:is_project_1/components/my_textfield.dart';
 import 'package:is_project_1/pages/admin_pages/admin_homepage.dart';
 import 'package:is_project_1/pages/legal_aid_pages/legalaid_homepage.dart';
 import 'package:is_project_1/pages/register_page.dart';
-import 'package:http/http.dart' as http;
 import 'package:is_project_1/pages/user_pages/user_homepage.dart';
-import 'dart:convert';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -22,9 +25,27 @@ class _LoginPageState extends State<LoginPage> {
   final passwordController = TextEditingController();
   bool isLoading = false;
   bool _obscurePassword = true;
+  String baseUrl =
+      'https://03b6-197-136-185-70.ngrok-free.app'; // Default fallback
+
+  @override
+  void initState() {
+    super.initState();
+    loadEnv();
+  }
+
+  Future<void> loadEnv() async {
+    try {
+      await dotenv.load(fileName: ".env");
+      setState(() {
+        baseUrl = dotenv.env['API_BASE_URL'] ?? baseUrl;
+      });
+    } catch (e) {
+      print('Error loading .env file: $e');
+    }
+  }
 
   // Your deployed Vercel API URL for now we'll use the local Ip cause vercel did that thing:(
-  static const String baseUrl = 'https://42a7-41-90-187-88.ngrok-free.app';
 
   Map<String, dynamic> decodeJWT(String token) {
     final parts = token.split('.');
@@ -68,7 +89,12 @@ class _LoginPageState extends State<LoginPage> {
         try {
           final tokenPayload = decodeJWT(responseData['access_token']);
           int roleId = tokenPayload['role_id'];
-          //int user_id = int(tokenPayload['user_id']);
+          final prefs = await SharedPreferences.getInstance();
+
+          final userId = tokenPayload['sub']; // this is the user ID
+
+          // Save user_id to SharedPreferences
+          await prefs.setString('user_id', userId);
 
           if (mounted) {
             Widget destinationPage;
@@ -79,6 +105,8 @@ class _LoginPageState extends State<LoginPage> {
             } else {
               destinationPage = const UserHomepage();
             }
+            final userId = tokenPayload['sub']; // Save UUID from token
+            await prefs.setString('user_id', userId);
 
             Navigator.pushReplacement(
               context,

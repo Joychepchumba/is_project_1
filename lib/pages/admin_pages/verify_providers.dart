@@ -68,6 +68,11 @@ Future<void> _verifyProvider(String providerId) async {
   }
 }
 
+<<<<<<< HEAD
+=======
+class VerifyProvidersPage extends StatelessWidget {
+  const VerifyProvidersPage({super.key});
+>>>>>>> origin/branch_joy
 
   @override
   Widget build(BuildContext context) {

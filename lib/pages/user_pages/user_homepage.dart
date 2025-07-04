@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:is_project_1/components/custom_bootom_navbar.dart';
 import 'package:is_project_1/models/profile_response.dart';
+import 'package:is_project_1/pages/user_pages/map_page.dart';
+import 'package:is_project_1/pages/user_pages/user_legalaid.dart';
 import 'package:is_project_1/services/api_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:convert';
@@ -10,6 +12,28 @@ import 'package:is_project_1/pages/user_pages/safety_tips_page.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
+class PoliceLocation {
+  final String name;
+  final double latitude;
+  final double longitude;
+  final String contactNumber;
+
+  PoliceLocation({
+    required this.name,
+    required this.latitude,
+    required this.longitude,
+    required this.contactNumber,
+  });
+
+  factory PoliceLocation.fromJson(Map<String, dynamic> json) {
+    return PoliceLocation(
+      name: json['name'],
+      latitude: json['latitude'].toDouble(),
+      longitude: json['longitude'].toDouble(),
+      contactNumber: json['contact_number'],
+    );
+  }
+}
 
 class UserHomepage extends StatefulWidget {
   const UserHomepage({super.key});
@@ -329,7 +353,7 @@ class _UserHomepageState extends State<UserHomepage> {
             // Quick Actions Section
             _buildSectionHeader('Quick Actions'),
             const SizedBox(height: 16),
-            _buildQuickActionsGrid(),
+            _buildQuickActionsGrid(context),
 
             const SizedBox(height: 30),
 
@@ -392,7 +416,7 @@ class _UserHomepageState extends State<UserHomepage> {
     );
   }
 
-  Widget _buildQuickActionsGrid() {
+  Widget _buildQuickActionsGrid(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -409,7 +433,7 @@ class _UserHomepageState extends State<UserHomepage> {
                   Icons.upload_outlined,
                   'Upload Safety Tip',
                   Colors.blue,
-                ),
+                ), // no onTap
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -417,6 +441,14 @@ class _UserHomepageState extends State<UserHomepage> {
                   Icons.gavel_outlined,
                   'Legal Aid',
                   Colors.blue,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const UserLegalaid(),
+                      ),
+                    );
+                  },
                 ),
               ),
             ],
@@ -429,40 +461,28 @@ class _UserHomepageState extends State<UserHomepage> {
                   Icons.location_on_outlined,
                   'Share Location',
                   Colors.blue,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const MapPage()),
+                    );
+                  },
                 ),
               ),
               const SizedBox(width: 16),
               Expanded(
-                child: ElevatedButton(
-                  onPressed: () async {
-                    if (emergencyContacts.isNotEmpty) {
-                      final EmergencyContact contact = emergencyContacts.first;
-                      final Uri url = Uri(
-                        scheme: 'tel',
-                        path: contact.contactNumber.replaceAll(
-                          RegExp(r'[^\d+]'),
-                          '',
-                        ), // Clean the number
-                      );
-
-                      try {
-                        if (await canLaunchUrl(url)) {
-                          await launchUrl(url);
-                        } else {
-                          print('Cannot launch phone app');
-                        }
-                      } catch (e) {
-                        print('Error launching phone call: $e');
-                      }
-                    } else {
-                      print('No emergency contacts available');
-                    }
+                child: _buildQuickActionItem(
+                  Icons.warning_amber_outlined,
+                  'Panic button',
+                  Colors.red,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const MapPage(triggerPanic: true),
+                      ),
+                    );
                   },
-                  child: _buildQuickActionItem(
-                    Icons.phone_outlined,
-                    'Emergency Call',
-                    Colors.red,
-                  ),
                 ),
               ),
             ],
@@ -511,88 +531,7 @@ Widget _buildQuickActionItem(IconData icon, String label, Color color) {
     );
   }
 
-  Widget _buildPoliceStationsCard() {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 6,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          // Map placeholder
-          Container(
-            height: 120,
-            width: double.infinity,
-            decoration: const BoxDecoration(
-              color: Color(0xFFE8E8E8),
-              borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(16),
-                topRight: Radius.circular(16),
-              ),
-            ),
-            child: const Center(
-              child: Icon(
-                Icons.local_police_outlined,
-                size: 40,
-                color: Colors.grey,
-              ),
-            ),
-          ),
-
-          // Police stations list
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                _buildPoliceStationItem('Central Police Station', '0.5 km'),
-                const SizedBox(height: 12),
-                _buildPoliceStationItem('North Division', '1.2 km'),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPoliceStationItem(String name, String distance) {
-    return Row(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: Colors.blue.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: const Icon(Icons.local_police, color: Colors.blue, size: 20),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Text(
-            name,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-              color: Colors.black87,
-            ),
-          ),
-        ),
-        Text(
-          distance,
-          style: const TextStyle(fontSize: 14, color: Colors.grey),
-        ),
-      ],
-    );
-  }
+ 
 
  Widget _buildSafetyTipsCard() {
   if (tipsLoading) {

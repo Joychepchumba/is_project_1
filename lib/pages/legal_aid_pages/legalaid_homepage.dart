@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:is_project_1/components/custom_legal_navbar.dart';
+import 'package:is_project_1/pages/legal_aid_pages/legal_aid_clients_page.dart';
+import 'package:is_project_1/pages/legal_aid_pages/legal_aid_tips.dart';
+import 'package:is_project_1/pages/legal_aid_pages/legal_requests.dart';
+import 'package:is_project_1/pages/legal_aid_pages/my_tips.dart';
 
 class LegalAidHomepage extends StatefulWidget {
   const LegalAidHomepage({super.key});
@@ -69,11 +73,35 @@ class _LegalAidHomepageState extends State<LegalAidHomepage> {
             Row(
               children: [
                 Expanded(
-                  child: _buildStatCard('12', 'Pending Requests', Colors.red),
+                  child: InkWell(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const LegalRequestsScreen(),
+                        ),
+                      );
+                    },
+                    borderRadius: BorderRadius.circular(
+                      12,
+                    ), // Match your card's border radius
+                    child: _buildStatCard('2', 'Pending Requests', Colors.red),
+                  ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
-                  child: _buildStatCard('34', 'Active Cases', Colors.green),
+                  child: InkWell(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const MyTipsScreen(),
+                        ),
+                      );
+                    },
+                    borderRadius: BorderRadius.circular(12),
+                    child: _buildStatCard('3', 'Legal Tips', Colors.green),
+                  ),
                 ),
               ],
             ),
@@ -99,7 +127,12 @@ class _LegalAidHomepageState extends State<LegalAidHomepage> {
                     iconColor: const Color(0xFF4FABCB),
                     title: 'View Client\nMatches',
                     onTap: () {
-                      // Handle view client matches
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const LegalAidClientsPage(),
+                        ),
+                      );
                     },
                   ),
                 ),
@@ -108,9 +141,13 @@ class _LegalAidHomepageState extends State<LegalAidHomepage> {
                   child: _buildQuickActionCard(
                     icon: Icons.add,
                     iconColor: const Color(0xFF4FABCB),
-                    title: 'Add Legal Info',
+                    title: 'Add Legal tips',
                     onTap: () {
-                      // Handle add legal info
+                      //Navigator.push(
+                      //context,
+                      //MaterialPageRoute(
+                      //),
+                      //);
                     },
                   ),
                 ),
@@ -134,9 +171,14 @@ class _LegalAidHomepageState extends State<LegalAidHomepage> {
                   child: _buildQuickActionCard(
                     icon: Icons.edit,
                     iconColor: const Color(0xFF4FABCB),
-                    title: 'Edit Profile',
+                    title: 'My tips',
                     onTap: () {
-                      // Handle edit profile
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const MyTipsScreen(),
+                        ),
+                      );
                     },
                   ),
                 ),
