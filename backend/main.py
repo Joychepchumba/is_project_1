@@ -10,8 +10,20 @@ from schema import RealTimeGPSLogCreate, RealTimeGPSLogShow
 from schema import ActivityCreate, ActivityShow, LocationSharingSessionCreate
 
 from schema import PoliceLocationCreate
-from schema import DangerZoneCreate, PoliceLocationUpdate,UserDistributionResponse, DangerZoneDataPoint, DangerZonesResponse, AnalyticsResponse
+from schema import DangerZoneCreate, PoliceLocationUpdate,UserDistributionResponse, DangerZoneDataPoint, DangerZonesResponse, AnalyticsResponse,showExpertiseArea
+from schema import CreateLegalAidRequest, ShowLegalAidRequest
+from schema import UserResponse
+import legal_provider
+import legal_tips
+import Africas_talking
+import certifi  
+import os
+import requests
+import httpx
+import legal_requests
 from calulate_distance import calculate_distance
+from sqlalchemy.orm import joinedload
+
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -25,7 +37,7 @@ from database import get_db
 import crud
 import models
 import schema
-from models import Activity,  EmergencyContact, EmergencyLog, LocationSMSRequest, LocationSharingSession,DangerZone, PoliceLocation,  RealTimeGPSLog, SMSRequest, User, LegalAidProvider, UserTokenTable, LegalAidTokenTable
+from models import Activity,  EmergencyContact, EmergencyLog, LegalAidRequest, LocationSMSRequest, LocationSharingSession,DangerZone, PoliceLocation,  RealTimeGPSLog, SMSRequest, User, LegalAidProvider, UserTokenTable, LegalAidTokenTable
 from schema import CreateUser, CreateLegalAid, changepassword, TokenSchema, ShowUser, ShowLegalAid,editprofile,DangerZoneBase, DangerZoneResponse,PoliceLocationBase, PoliceLocationResponse, ProximityAlert, ProximityResponse
 from crud import verify_password, get_password_hash, create_access_token, create_refresh_token,get_current_user
 from fastapi import Request
@@ -51,6 +63,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
 
 import certifi
 import httpx
+load_dotenv()
 
 client = httpx.Client(verify=certifi.where())
 
@@ -68,8 +81,10 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 security = HTTPBearer()
 sms_service = Africas_talking.AfricasTalkingService()
+app.include_router(legal_tips.router)
+app.include_router(legal_requests.router)
+app.include_router(legal_provider.router)
 
-load_dotenv()
 
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 30))
 REFRESH_TOKEN_EXPIRE_MINUTES = int(os.getenv("REFRESH_TOKEN_EXPIRE_MINUTES", 60 * 24 * 7))  # 7 days
@@ -89,12 +104,21 @@ active_connections = {}
 async def root():
     return {"message": "Hello from FastAPI!"}
 
+@app.middleware("http")
+async def log_request(request: Request, call_next):
+    body = await request.body()
+    logging.info(f"Request body: {body.decode('utf-8')}")
+    
+    response = await call_next(request)
+    return response
+
 @app.post("/register/user", response_model=ShowUser)
 def register_user(user: CreateUser, db: Session = Depends(get_db)):
     existing_user = db.query(models.User).filter(
         (models.User.phone_number == user.phone_number) |
         (models.User.email == user.email)
     ).first()
+    print(user.dict())
     if existing_user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -105,17 +129,23 @@ def register_user(user: CreateUser, db: Session = Depends(get_db)):
 
 @app.post("/register/legal_aid_provider", response_model=ShowLegalAid)
 def register_legal_aid(legal_aid: CreateLegalAid, db: Session = Depends(get_db)):
+    print("Received:", legal_aid.dict())  # Show incoming data
     existing_legal_aid_provider = db.query(models.LegalAidProvider).filter(
         (models.LegalAidProvider.phone_number == legal_aid.phone_number) |
         (models.LegalAidProvider.email == legal_aid.email)
     ).first()
     if existing_legal_aid_provider:
+        print("Duplicate found:", existing_legal_aid_provider)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Account exists"
         )
     created_legal_aid = crud.create_legal_aid(db, legal_aid)
+    print("Created:", created_legal_aid)
     return created_legal_aid
+
+
+
 
 @app.post("/login", response_model=TokenSchema)
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
@@ -200,6 +230,14 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
         
     }
 
+
+@app.get("/api/users/{user_id}", response_model=UserResponse)
+def get_user_by_id(user_id: UUID, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user
+
 @app.post("/google/login", response_model=TokenSchema)
 def google_login(token: str, db: Session = Depends(get_db)):
     response = requests.get(f'https://oauth2.googleapis.com/tokeninfo?id_token={token}')
@@ -245,7 +283,21 @@ def google_login(token: str, db: Session = Depends(get_db)):
 def getusers(db: Session = Depends(get_db), token: str = Depends(jwt_bearer)):
     users = db.query(models.User).all()
     return users
-
+@app.get("/expertise-areas", response_model=List[showExpertiseArea])
+async def get_expertise_areas(db: Session = Depends(get_db)):
+    expertise_areas = db.query(models.ExpertiseArea).all()
+    if not expertise_areas:
+        # Instead of 404, return empty list for better UX
+        return [ {"id": 1, "name": "Criminal Law"},
+        {"id": 2, "name": "International Law"},
+        {"id": 3, "name": "Human Rights Law"},
+        {"id": 4, "name": "Commercial Law"},
+        {"id": 5, "name": "Health Law"},
+        {"id": 6, "name": "Divorce and Family Law"},
+        ]
+    
+    return expertise_areas                  
+    # 
 @app.post('/changePassword')
 def change_password(request: changepassword, db: Session = Depends(get_db)):
     user = db.query(models.User).filter(models.User.email == request.email).first()
@@ -412,7 +464,7 @@ def get_profile(token: str = Depends(jwt_bearer), db: Session = Depends(get_db))
     if not payload:
         print("DEBUG: Invalid token - payload is None")
         raise HTTPException(status_code=403, detail="Invalid token")
-
+    
     user_id = payload.get("sub")
     user_type = payload.get("user_type")
     role_id = payload.get("role_id")
@@ -420,7 +472,7 @@ def get_profile(token: str = Depends(jwt_bearer), db: Session = Depends(get_db))
     print(f"DEBUG: user_id={user_id} (type: {type(user_id)})")
     print(f"DEBUG: user_type={user_type}")
     print(f"DEBUG: role_id={role_id}")
-
+    
     if user_type == "user":
         # Try both string and converted types
         print(f"DEBUG: Querying User table with id: {user_id}")
@@ -437,7 +489,7 @@ def get_profile(token: str = Depends(jwt_bearer), db: Session = Depends(get_db))
                 user = db.query(models.User).filter(models.User.id == user_id).first()
         else:
             user = db.query(models.User).filter(models.User.id == user_id).first()
-            
+        
         print(f"DEBUG: Found user: {user}")
         print(f"DEBUG: User query result - user is None: {user is None}")
         
@@ -456,6 +508,7 @@ def get_profile(token: str = Depends(jwt_bearer), db: Session = Depends(get_db))
             "user_type": user_type,
             "role_id": role_id
         }
+    
     elif user_type == "legal_aid":
         print(f"DEBUG: Querying LegalAidProvider table with id: {user_id}")
         
@@ -463,12 +516,19 @@ def get_profile(token: str = Depends(jwt_bearer), db: Session = Depends(get_db))
             try:
                 import uuid
                 user_uuid = uuid.UUID(user_id)
-                legal_aid = db.query(models.LegalAidProvider).filter(models.LegalAidProvider.id == user_uuid).first()
+                # Use joinedload to eagerly load expertise_areas relationship
+                legal_aid = db.query(models.LegalAidProvider).options(
+                    joinedload(models.LegalAidProvider.expertise_areas)
+                ).filter(models.LegalAidProvider.id == user_uuid).first()
             except:
-                legal_aid = db.query(models.LegalAidProvider).filter(models.LegalAidProvider.id == user_id).first()
+                legal_aid = db.query(models.LegalAidProvider).options(
+                    joinedload(models.LegalAidProvider.expertise_areas)
+                ).filter(models.LegalAidProvider.id == user_id).first()
         else:
-            legal_aid = db.query(models.LegalAidProvider).filter(models.LegalAidProvider.id == user_id).first()
-            
+            legal_aid = db.query(models.LegalAidProvider).options(
+                joinedload(models.LegalAidProvider.expertise_areas)
+            ).filter(models.LegalAidProvider.id == user_id).first()
+        
         print(f"DEBUG: Found legal_aid: {legal_aid}")
         
         if not legal_aid:
@@ -476,19 +536,40 @@ def get_profile(token: str = Depends(jwt_bearer), db: Session = Depends(get_db))
             print(f"DEBUG: Sample legal aid providers in database: {all_providers}")
             raise HTTPException(status_code=404, detail="Legal aid provider not found")
         
+        # Extract expertise areas as a list of dictionaries or names
+        expertise_areas = []
+        for area in legal_aid.expertise_areas:
+            expertise_areas.append({
+                "id": area.id,
+                "name": area.name
+            })
+        
+        print(f"DEBUG: Expertise areas found: {expertise_areas}")
+        
         return {
             "id": str(legal_aid.id),
             "name": legal_aid.full_name,
             "email": legal_aid.email,
             "phone_number": legal_aid.phone_number,
             "profile_image": getattr(legal_aid, 'profile_image', None),
-            "expertise_area": legal_aid.expertise_area,
+            "expertise_areas": expertise_areas,  # Changed from expertise_area to expertise_areas
             "user_type": user_type,
             "role_id": role_id
         }
+    
     else:
         print(f"DEBUG: Unknown user_type: {user_type}")
         raise HTTPException(status_code=400, detail="Invalid user type")
+    
+app.get("/view-legal-aid-providers")
+def view_legal_aid_providers(db: Session = Depends(get_db)):
+    """View all legal aid providers"""
+    try:
+        legal_aid_providers = db.query(models.LegalAidProvider).all()
+        return [ShowLegalAid.from_orm(provider) for provider in legal_aid_providers]
+    except Exception as e:
+        logger.error(f"Failed to fetch legal aid providers: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to fetch legal aid providers")
     
 @app.post("/api/send-emergency-sms")
 async def send_emergency_sms(
@@ -861,7 +942,8 @@ async def share_location_with_contacts(
         db.refresh(db_sharing_session)
         
         # Get the base URL
-        base_url = "https://423c-197-136-185-70.ngrok-free.app"
+        ##base_url = os.getenv("API_BASE_URL", "https://2b00-2c0f-fe38-219b-d073-f583-7cfc-f676-cc1.ngrok-free.app")
+        base_url = "https://8088-197-136-185-70.ngrok-free.app"
         
         # Create URLs
         full_tracking_url = f"{base_url}/gps/track/{current_user['user_id']}?session_token={session_token}"
@@ -1047,7 +1129,7 @@ async def track_user_location(
                 activity_name = activity.name
         
         # Replace with your actual Mapbox access token (get from https://mapbox.com)
-        MAPBOX_ACCESS_TOKEN = "pk.eyJ1Ijoiam95a2lwa2VtYm9pIiwiYSI6ImNtYnRwdWt3ajA3MjYybHMyMmJzMzVrZHkifQ."
+        MAPBOX_ACCESS_TOKEN = os.getenv("MAPBOX_WEB_TOKEN", "pk.eyJ1Ijoiam95a2lwa2VtYm9pIiwiYSI6ImNtY2J2MmlpZTAxbWIya3NhaWV1aTh5MTkifQ.-nLBrGjd639RrXjdXHq3HA")
         
         html_content = f"""
         <!DOCTYPE html>
@@ -1091,9 +1173,9 @@ async def track_user_location(
                 .waiting {{ background: #fff3cd; color: #856404; border: 1px solid #ffc107; }}
                 .error {{ background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }}
                 #map {{ 
-                    height: 400px; 
-                    width: 100%; 
-                    margin: 15px 0; 
+                    height: 600px !important; 
+                    width: 100% !important; 
+                    margin: 0 auto !important;  
                     border-radius: 12px; 
                     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
                 }}
@@ -1222,9 +1304,11 @@ async def track_user_location(
                     
                     map = new mapboxgl.Map({{
                         container: 'map',
-                        style: 'mapbox://styles/mapbox/streets-v11', // You can change this to satellite-v9, outdoors-v11, etc.
+                        style: 'mapbox://styles/mapbox/dark-v11', // Dark theme with good visibility
                         center: [defaultLng, defaultLat],
-                        zoom: hasData ? 15 : 2
+                        zoom: hasData ? 16 : 10,            // Zoom in closer
+                        pitch: 60,            // Tilt more for 3D view
+                        bearing: -20 
                     }});
                     
                     // Add navigation controls
@@ -1255,6 +1339,22 @@ async def track_user_location(
                                 'features': []
                             }}
                         }});
+                        map.addLayer({{
+                            'id': 'user-location-accuracy',
+                            'type': 'circle',
+                            'source': 'user-location',
+                            'paint': {{
+                                'circle-radius': {{
+                                    'base': 1.75,
+                                    'stops': [[12, 2], [22, 180]]
+                                }},
+                                'circle-color': '#87ceeb',
+                                'circle-opacity': 0.1,
+                                'circle-stroke-width': 2,
+                                'circle-stroke-color': '#87ceeb',
+                                'circle-stroke-opacity': 0.3
+                            }}
+                        }});
                         
                         // Add a layer for the user's location
                         map.addLayer({{
@@ -1281,11 +1381,44 @@ async def track_user_location(
                                 'circle-stroke-width': 0
                             }}
                         }});
+                        map.addLayer({{
+                            'id': '3d-buildings',
+                            'source': 'composite',
+                            'source-layer': 'building',
+                            'filter': ['==', 'extrude', 'true'],
+                            'type': 'fill-extrusion',
+                            'minzoom': 15,
+                            'paint': {{
+                                'fill-extrusion-color': '#87ceeb',
+                                'fill-extrusion-height': [
+                                    'interpolate',
+                                    ['linear'],
+                                    ['zoom'],
+                                    15, 0,
+                                    15.05, ['get', 'height']
+                                ],
+                                'fill-extrusion-base': [
+                                    'interpolate',
+                                    ['linear'],
+                                    ['zoom'],
+                                    15, 0,
+                                    15.05, ['get', 'min_height']
+                                ],
+                                'fill-extrusion-opacity': 0.8
+                            }}
+                        }});
+                        
                         
                         // Update marker if we have initial data
-                        if (hasData) {{
+                         if (hasData) {{
                             updateMapMarker(defaultLng, defaultLat);
+                            // Get location name
+                            getLocationName(defaultLng, defaultLat);
                         }}
+                        
+                    }});
+                    map.on('click', function(e) {{
+                        console.log('Clicked at:', e.lngLat);
                     }});
                 }}
                 
@@ -1684,7 +1817,8 @@ async def get_shareable_link(
         
         # Create URLs
         short_token = sharing_session.session_token[:12]
-        base_url = "https://423c-197-136-185-70.ngrok-free.app"  # Replace with your actual domain
+        ##base_url = os.getenv("API_BASE_URL", "https://2b00-2c0f-fe38-219b-d073-f583-7cfc-f676-cc1.ngrok-free.app")  # Replace with your actual domain
+        base_url="https://8088-197-136-185-70.ngrok-free.app"
         short_url = f"{base_url}/track/{short_token}"
         full_url = f"{base_url}/gps/track/{sharing_session.user_id}?session_token={sharing_session.session_token}"
         
@@ -2069,6 +2203,93 @@ async def get_dashboard_analytics(db: Session = Depends(get_db)):
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching dashboard analytics: {str(e)}")
+
+@app.get("/legal-aid-providers", response_model=List[ShowLegalAid])
+async def get_legal_aid_providers(db: Session = Depends(get_db)):
+    """Get all active legal aid providers with their expertise areas"""
+    try:
+        providers = db.query(LegalAidProvider).filter(
+            LegalAidProvider.status == "verified"
+        ).all()
+        
+        return providers
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error fetching legal aid providers: {str(e)}"
+        )
+
+@app.get("/legal-aid-providers/{provider_id}", response_model=ShowLegalAid)
+async def get_legal_aid_provider(provider_id: UUID, db: Session = Depends(get_db)):
+    """Get a specific legal aid provider by ID"""
+    try:
+        provider = db.query(LegalAidProvider).filter(
+            LegalAidProvider.id == provider_id
+        ).first()
+        
+        if not provider:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Legal aid provider not found"
+            )
+        
+        return provider
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error fetching legal aid provider: {str(e)}"
+        )
+@app.post("/legal-aid-requests", response_model=ShowLegalAidRequest)
+async def create_legal_aid_request(
+    request_data: CreateLegalAidRequest,
+    db: Session = Depends(get_db)
+):
+    """Create a new legal aid request"""
+    try:
+        # Verify that the user exists
+        user = db.query(User).filter(User.id == request_data.user_id).first()
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+        
+        # Verify that the legal aid provider exists and is active
+        provider = db.query(LegalAidProvider).filter(
+            LegalAidProvider.id == request_data.legal_aid_provider_id,
+            LegalAidProvider.status == "verified"
+        ).first()
+        if not provider:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Legal aid provider not found or inactive"
+            )
+        
+        # Create the request
+        new_request = LegalAidRequest(
+            user_id=request_data.user_id,
+            legal_aid_provider_id=request_data.legal_aid_provider_id,
+            title=request_data.title,
+            description=request_data.description,
+            status="pending"
+        )
+        
+        db.add(new_request)
+        db.commit()
+        db.refresh(new_request)
+        
+        return new_request
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error creating legal aid request: {str(e)}"
+        )
 
 
 

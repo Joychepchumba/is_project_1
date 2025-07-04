@@ -1,13 +1,24 @@
+import enum
 from typing import List, Optional
 from database import Base
 from sqlalchemy import (
-    Column, String, Integer, TIMESTAMP, ForeignKey, Text, Boolean, DateTime,
-    DECIMAL, text, Float
+    Column, String, Integer, TIMESTAMP, ForeignKey, Table, Text, Boolean, DateTime,
+    DECIMAL, text, Float, Enum
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 import uuid
 from datetime import datetime
+
+from enum import Enum
+from sqlalchemy import Enum as SQLEnum
+
+legal_provider_expertise = Table(
+    "legal_provider_expertise",
+    Base.metadata,
+    Column("provider_id", UUID(as_uuid=True), ForeignKey("legal_aid_providers.id")),
+    Column("expertise_id", Integer, ForeignKey("expertise_areas.id"))
+)
 
 class Role(Base):
     __tablename__ = "roles"
@@ -35,25 +46,98 @@ class User(Base):
     emergency_contacts = relationship("EmergencyContact", back_populates="user", cascade="all, delete-orphan")
     gps_logs = relationship("RealTimeGPSLog", back_populates="user")
     sharing_sessions = relationship("LocationSharingSession", back_populates="user")
+    legal_aid_requests = relationship("LegalAidRequest", back_populates="user")
 
+class ExpertiseArea(Base):
+    __tablename__ = "expertise_areas"
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String(100), unique=True, nullable=False)
+
+    providers = relationship(
+        "LegalAidProvider",
+        secondary=legal_provider_expertise,
+        back_populates="expertise_areas"
+    )
 
 class LegalAidProvider(Base):
     __tablename__ = "legal_aid_providers"
+
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     full_name = Column(String(255))
     phone_number = Column(String(20), unique=True)
     email = Column(String(255), unique=True)
     password_hash = Column(Text)
-    expertise_area = Column(String(255))
+
+    # Removed: expertise_area = Column(...)
+    expertise_areas = relationship(
+        "ExpertiseArea",
+        secondary=legal_provider_expertise,
+        back_populates="providers"
+    )
+
     status = Column(String(50))
     profile_image = Column(Text, nullable=True)
+    psk_number = Column(String(50), unique=True, nullable=False)
     created_at = Column(TIMESTAMP, server_default=text("now()"))
     role_id = Column(Integer, ForeignKey("roles.id"))
+    about = Column(Text, nullable=True)
 
     role = relationship("Role", back_populates="legal_providers")
     safety_tips = relationship("SafetyTip", back_populates="submitted_by_legal")
+    requests_received = relationship("LegalAidRequest", back_populates="legal_aid_provider")
+    legal_tips = relationship("LegalTip", back_populates="legal_aid_provider")
+
+class RequestStatusEnum(str, enum.Enum):
+    pending = "pending"
+    accepted = "accepted"
+    declined = "declined"
+    completed = "completed"
+
+class TipStatus(str, enum.Enum):
+    draft = "draft"
+    published = "published"
+    archived = "archived"
+    deleted = "deleted"
+
+class LegalTip(Base):
+    __tablename__ = "legal_tips"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    title = Column(String(255), nullable=False)
+    description = Column(Text, nullable=False)
+    image_url = Column(Text, nullable=True)
+    status = Column(SQLEnum(TipStatus, name="tipstatus"), default=TipStatus.draft)
+    legal_aid_provider_id = Column(UUID(as_uuid=True), ForeignKey("legal_aid_providers.id"), nullable=False)
+    created_at = Column(TIMESTAMP, server_default=text("now()"))
+    updated_at = Column(TIMESTAMP, server_default=text("now()"), onupdate=text("now()"))
+    published_at = Column(TIMESTAMP, nullable=True)
+    
+    # Relationships
+    legal_aid_provider = relationship("LegalAidProvider", back_populates="legal_tips")
 
 
+
+class LegalAidRequest(Base):
+    __tablename__ = "legal_aid_requests"
+
+    id = Column(Integer, primary_key=True, index=True)
+    
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    legal_aid_provider_id = Column(UUID(as_uuid=True), ForeignKey("legal_aid_providers.id"), nullable=False)
+    
+    title = Column(String(255), nullable=False)
+    description = Column(Text, nullable=False)
+    
+    status = Column(SQLEnum(RequestStatusEnum, name="request_status"), nullable=False, default=RequestStatusEnum.pending)
+
+    
+    created_at = Column(TIMESTAMP, server_default=text("now()"))
+    
+
+    # Relationships
+    user = relationship("User", back_populates="legal_aid_requests")
+    legal_aid_provider = relationship("LegalAidProvider", back_populates="requests_received")
   
 
 
@@ -114,6 +198,7 @@ class DangerZone(Base):
     latitude = Column(DECIMAL(9, 6))
     description = Column(Text)
     reported_count = Column(Integer, server_default=text("0"))
+
 
 
 
@@ -227,3 +312,5 @@ class LocationSharingSession(Base):
     is_active = Column(Boolean, default=True)
     
     user = relationship("User", back_populates="sharing_sessions")
+
+

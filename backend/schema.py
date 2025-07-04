@@ -1,11 +1,17 @@
+import re
 from unittest.mock import Base
-from pydantic import BaseModel, ConfigDict, EmailStr, UUID4
+from pydantic import BaseModel, ConfigDict, EmailStr, UUID4, validator
 from typing import Optional, List
 from datetime import datetime
 from pydantic import BaseModel
 from typing import Optional
 from decimal import Decimal
 from datetime import datetime
+from enum import Enum
+
+from sqlalchemy import TIMESTAMP
+
+from models import TipStatus
 
 
 '''
@@ -35,6 +41,19 @@ class CreateUser(UserBase):
     password_hash: Optional[str] = None  # optional now, because Google users may not have a password
     role_id: int
     google_oauth: Optional[bool] = False  # Flag for Google users
+    @validator("password_hash")
+    def validate_password(cls, v):
+        if len(v) < 8:
+            raise ValueError("Password must be at least 8 characters long")
+        if not re.search(r"[A-Z]", v):
+            raise ValueError("Password must contain at least one uppercase letter")
+        if not re.search(r"[a-z]", v):
+            raise ValueError("Password must contain at least one lowercase letter")
+        if not re.search(r"[0-9]", v):
+            raise ValueError("Password must contain at least one digit")
+        if not re.search(r"[^A-Za-z0-9]", v):
+            raise ValueError("Password must contain at least one special character")
+        return v
 
 class LoginGoogleUser(BaseModel):
     email: EmailStr
@@ -75,6 +94,16 @@ class TokenCreate(BaseModel):
     status:bool
     created_date: datetime
 
+class UserResponse(BaseModel):
+    id: UUID4
+    full_name: str
+    email: EmailStr
+    phone_number: str
+
+    model_config = {
+        "from_attributes": True
+    }
+
 
 
 # Legal Aid Provider schemas
@@ -92,45 +121,249 @@ class editprofile(BaseModel):
     emergency_contact_number: Optional[str] = None
     
     # Legal aid specific fields
-    expertise_area: Optional[str] = None
+    expertise_area_ids: Optional[List[int]] = None
 
 
-class LegalAidProvider(BaseModel):
+class ExpertiseAreaBase(BaseModel):
+    name: str
+
+class ExpertiseAreaCreate(ExpertiseAreaBase):
+    pass
+
+class ExpertiseAreaOut(ExpertiseAreaBase):
+    id: int
+class showExpertiseArea(ExpertiseAreaBase):
+    id: int
+    name: str
+
+    model_config = {
+        "from_attributes": True
+    }
+
+
+class LegalAidProviderBase(BaseModel):
     full_name: str
     phone_number: str
     email: EmailStr
-    expertise_area: str
     status: str
     profile_image: Optional[str] = None
+    psk_number: str
+    about: Optional[str] = None
 
-class CreateLegalAid(LegalAidProvider):
-    password_hash: Optional[str] = None  # optional now, because Google users may not have a password
+class CreateLegalAid(LegalAidProviderBase):
+    password_hash: Optional[str] = None # For traditional users
     role_id: int
-    google_oauth: Optional[bool] = False  # Flag for Google users
+    google_oauth: Optional[bool] = False
+    expertise_area_ids: List[int]  # List of expertise area IDs
+    @validator("password_hash")
+    def validate_password(cls, v):
+        if v is None:
+            raise ValueError("Password cannot be empty")
+        if len(v) < 8:
+            raise ValueError("Password must be at least 8 characters long")
+        if not re.search(r"[A-Z]", v):
+            raise ValueError("Password must contain at least one uppercase letter")
+        if not re.search(r"[a-z]", v):
+            raise ValueError("Password must contain at least one lowercase letter")
+        if not re.search(r"[0-9]", v):
+            raise ValueError("Password must contain at least one digit")
+        if not re.search(r"[^A-Za-z0-9]", v):
+            raise ValueError("Password must contain at least one special character")
+        return v
 
-  
 class LoginLglAidGoogleUser(BaseModel):
     email: EmailStr
 
 class LoginLegalAid(BaseModel):
-    identifier: str  # Can be either email or phone_number
-    password_hash: str
+    identifier: str  # Can be phone or email
+    password_hash: Optional[str] = None
 
 class UpdateLegalAid(BaseModel):
     full_name: Optional[str] = None
     phone_number: Optional[str] = None
     email: Optional[EmailStr] = None
     password_hash: Optional[str] = None
-    expertise_area: Optional[str] = None
     status: Optional[str] = None
+    profile_image: Optional[str] = None
+    psk_number: Optional[str] = None
+    expertise_area_ids: Optional[List[int]] = None
+    about: Optional[str] = None
 
-class ShowLegalAid(LegalAidProvider):
+class ShowLegalAid(LegalAidProviderBase):
     id: UUID4
+    full_name: Optional[str] = None
+    phone_number: Optional[str] = None
+    email: Optional[str] = None
+    psk_number: Optional[str] = None
+    status: Optional[str] = None
+    profile_image: Optional[str] = None
+    about: Optional[str] = None
+    created_at: datetime
+    
+    model_config = {
+        "from_attributes": True
+    }
+
+class RequestStatus(str, Enum):
+    pending = "pending"
+    accepted = "accepted"
+    declined = "declined"
+    completed = "completed"
+class LegalAidRequestBase(BaseModel):
+    title: str
+    description: str
+    status: Optional[RequestStatus] = RequestStatus.pending
+class CreateLegalAidRequest(LegalAidRequestBase):
+    user_id: UUID4
+    legal_aid_provider_id: UUID4
+class UpdateLegalAidRequest(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    status: Optional[RequestStatus] = None
+    legal_aid_provider_id: Optional[UUID4] = None
+class ShowLegalAidRequest(LegalAidRequestBase):
+    id: int
+    user_id: UUID4
+    legal_aid_provider_id: UUID4
+    created_at: datetime
+    user: Optional[UserBase] = None
+    legal_aid_provider: Optional[ShowLegalAid] = None  # Change this from LegalAidProviderBase to ShowLegalAid
 
     model_config = {
         "from_attributes": True
     }
 
+class LegalTipBase(BaseModel):
+    title: str
+    description: str
+    image_url: Optional[str] = None
+
+class LegalTipCreate(LegalTipBase):
+    legal_aid_provider_id: UUID4
+
+class LegalTipUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    image_url: Optional[str] = None
+    status: Optional[TipStatus] = None
+
+class LegalTipResponse(LegalTipBase):
+    id: UUID4
+    status: TipStatus
+    legal_aid_provider_id: UUID4
+    created_at: datetime
+    updated_at: datetime
+    published_at: Optional[datetime] = None
+    
+    class Config:
+        from_attributes = True
+
+class LegalAidRequestCreate(BaseModel):
+    title: str
+    description: str
+    user_id: UUID4
+    legal_aid_provider_id: UUID4
+
+class LegalAidRequestUpdate(BaseModel):
+    status: RequestStatus
+
+class UserOut(BaseModel):
+    id: UUID4
+    full_name: str
+    email: str
+    phone_number: str
+
+    class Config:
+        from_attributes = True
+
+class LegalAidRequestResponse(BaseModel):
+    id: UUID4
+    title: str
+    description: str
+    user_id: UUID4
+    legal_aid_provider_id: UUID4
+    created_at: datetime
+    status: str
+    user: Optional[UserOut]
+
+    class Config:
+        from_attributes = True
+
+
+
+class LegalAidRequestOut(BaseModel):
+    id: str
+    user_id: UUID4
+    legal_aid_provider_id: UUID4
+    title: str
+    description: str
+    status: str
+    created_at: datetime
+    user: Optional[UserOut]  # <- nested user
+
+    class Config:
+        from_attributes = True
+
+
+
+class LegalTipBase(BaseModel):
+    title: str
+    description: str
+    image_url: Optional[str] = None
+    status: Optional[TipStatus] = TipStatus.draft
+
+class CreateLegalTip(BaseModel):
+    title: str
+    description: str
+    image_url: Optional[str] = None
+    legal_aid_provider_id: UUID4
+
+class UpdateLegalTip(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    image_url: Optional[str] = None
+    status: Optional[TipStatus] = None
+
+
+
+class ShowLegalTip(BaseModel):
+    id: UUID4
+    title: str
+    description: str
+    image_url: Optional[str] = None
+    status: str
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    legal_aid_provider_id: UUID4
+    legal_aid_provider: Optional[ShowLegalAid] = None  # Add this line
+
+    model_config = {
+        "from_attributes": True
+    }
+    
+    
+
+class LegalTipWithProvider(ShowLegalTip):
+    legal_aid_provider: ShowLegalAid
+
+
+# Updated schemas for better base64 handling
+class CreateLegalTipRequest(BaseModel):
+    title: str
+    description: str
+    image_base64: Optional[str] = None  # base64 encoded image
+    status: Optional[TipStatus] = TipStatus.draft
+    legal_aid_provider_id: UUID4
+
+class UpdateLegalTipRequest(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    image_base64: Optional[str] = None  # base64 encoded image
+    status: Optional[TipStatus] = None
+
+class Base64ImageUpload(BaseModel):
+    image_data: str  # base64 encoded image
+    filename: Optional[str] = None
 
 class UserDistributionResponse(BaseModel):
     total_users: int
@@ -149,8 +382,6 @@ class DangerZonesResponse(BaseModel):
 class AnalyticsResponse(BaseModel):
     user_distribution: UserDistributionResponse
     danger_zones: DangerZonesResponse
-
-
 
 
 
