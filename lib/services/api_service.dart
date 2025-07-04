@@ -1,17 +1,35 @@
 import 'dart:convert';
 import 'package:flutter/rendering.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:is_project_1/models/profile_response.dart';
 import 'package:is_project_1/pages/user_pages/location_webservices.dart';
+import 'package:jwt_decoder/jwt_decoder.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
-  static const String baseUrl = 'https://423c-197-136-185-70.ngrok-free.app';
+  static late final String baseUrl;
 
   // Get stored token
   static Future<String?> getToken() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString('access_token');
+  }
+
+  static Future<String?> getCurrentProviderId() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('access_token');
+
+      if (token != null) {
+        final decodedToken = JwtDecoder.decode(token);
+        return decodedToken['sub']; // This is the provider ID
+      }
+      return null;
+    } catch (e) {
+      print('Error getting provider ID: $e');
+      return null;
+    }
   }
 
   // Get user profile
@@ -274,5 +292,15 @@ class ApiService {
     }
   }
 
-  /// Get emergency contacts
+  static Future<void> loadEnv() async {
+    try {
+      await dotenv.load(fileName: ".env");
+      baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://localhost:8000';
+    } catch (e) {
+      print('Error loading .env file: $e');
+      baseUrl = 'http://localhost:8000';
+    }
+
+    /// Get emergency contacts
+  }
 }

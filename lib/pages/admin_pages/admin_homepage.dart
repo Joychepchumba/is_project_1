@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:is_project_1/components/custom_admin.navbar.dart';
 import 'package:is_project_1/pages/admin_pages/admin_analytics.dart';
@@ -37,15 +38,28 @@ class AdminHomepage extends StatefulWidget {
 class _AdminHomepageState extends State<AdminHomepage> {
   bool isLoading = true;
   String? error;
+  String baseUrl = 'http://localhost:8000';
 
   UserDistribution? userDistribution;
 
-  static const String baseUrl = 'https://423c-197-136-185-70.ngrok-free.app';
+  //static const String baseUrl = 'https://423c-197-136-185-70.ngrok-free.app';
 
   @override
   void initState() {
     super.initState();
+    loadEnv();
     _loadAnalyticsData();
+  }
+
+  Future<void> loadEnv() async {
+    try {
+      await dotenv.load(fileName: ".env");
+      setState(() {
+        baseUrl = dotenv.env['API_BASE_URL'] ?? baseUrl;
+      });
+    } catch (e) {
+      print('Error loading .env file: $e');
+    }
   }
 
   Future<void> _loadAnalyticsData() async {

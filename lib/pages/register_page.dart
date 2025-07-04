@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:is_project_1/components/my_textfield.dart';
 import 'package:is_project_1/components/image_picker_widget.dart';
@@ -19,28 +20,85 @@ class _RegisterPageState extends State<RegisterPage> {
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
   final emergencyContactController = TextEditingController();
-  final expertiseAreaController = TextEditingController();
   final emegencyContactNameController = TextEditingController();
   final emergencyContactEmailController = TextEditingController();
   final confirmPasswordController = TextEditingController();
+  final pskController = TextEditingController();
+  final aboutController = TextEditingController();
 
   bool _obscureConfirmPassword = true;
   bool _obscurePassword = true;
 
   int selectedRole = 5;
+  List<int> selectedExpertiseAreas = [];
+  List<Map<String, dynamic>> expertiseAreas = [];
+  bool _loadingExpertiseAreas = false;
 
   String defaultStatus = "Pending";
 
   File? _profileImage;
   bool _isLoading = false;
+  String API_BASE_URL =
+      dotenv.env['API_BASE_URL'] ??
+      'https://03b6-197-136-185-70.ngrok-free.app'; // Default fallback
 
-  static const String API_BASE_URL =
-      'https://423c-197-136-185-70.ngrok-free.app';
+  // Default fallback
+
+  //static const String API_BASE_URL = 'https://81bb-41-81-48-172.ngrok-free.app';
 
   String get roleString {
     return selectedRole == 5
         ? 'Safety Concerned Individual'
         : 'Legal Aid Provider';
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadExpertiseAreas();
+    loadEnv();
+  }
+
+  Future<void> loadEnv() async {
+    try {
+      await dotenv.load(fileName: ".env");
+      setState(() {
+        API_BASE_URL =
+            dotenv.env['API_BASE_URL'] ??
+            'http://localhost:8000'; // Default fallback
+      });
+    } catch (e) {
+      print('Error loading .env file: $e');
+    }
+  }
+
+  Future<void> _loadExpertiseAreas() async {
+    setState(() {
+      _loadingExpertiseAreas = true;
+    });
+
+    try {
+      final url = Uri.parse('$API_BASE_URL/expertise-areas');
+      final response = await http.get(
+        url,
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        setState(() {
+          expertiseAreas = data.cast<Map<String, dynamic>>();
+        });
+      } else {
+        print('Failed to load expertise areas: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error loading expertise areas: $e');
+    } finally {
+      setState(() {
+        _loadingExpertiseAreas = false;
+      });
+    }
   }
 
   Future<void> registerUser() async {
@@ -53,17 +111,22 @@ class _RegisterPageState extends State<RegisterPage> {
       return;
     }
 
+    // Password confirmation validation
+    if (passwordController.text != confirmPasswordController.text) {
+      _showErrorDialog('Passwords do not match');
+      return;
+    }
+
     if (roleString == 'Safety Concerned Individual' &&
         (emergencyContactController.text.isEmpty ||
             emegencyContactNameController.text.isEmpty ||
             emergencyContactEmailController.text.isEmpty)) {
-      _showErrorDialog('Please provide emergency contact');
+      _showErrorDialog('Please provide emergency contact information');
       return;
     }
 
-    if (roleString == 'Legal Aid Provider' &&
-        expertiseAreaController.text.isEmpty) {
-      _showErrorDialog('Please provide expertise area');
+    if (roleString == 'Legal Aid Provider' && selectedExpertiseAreas.isEmpty) {
+      _showErrorDialog('Please select at least one expertise area');
       return;
     }
 
@@ -108,9 +171,9 @@ class _RegisterPageState extends State<RegisterPage> {
       'phone_number': phoneController.text.trim(),
       'email': emailController.text.trim(),
       'password_hash': passwordController.text,
-      'emergency_contact': emergencyContactController.text.trim(),
-      'contact_name': emegencyContactNameController.text.trim(),
-      'email_contact': emergencyContactEmailController.text.trim(),
+      'emergency_contact_number': emergencyContactController.text.trim(),
+      'emergency_contact_name': emegencyContactNameController.text.trim(),
+      'emergency_contact_email': emergencyContactEmailController.text.trim(),
       'role_id': selectedRole,
       'status': 'Pending',
       'profile_image': profileImageBase64,
@@ -124,9 +187,14 @@ class _RegisterPageState extends State<RegisterPage> {
 
     if (response.statusCode == 200) {
       _showSuccessDialog('Registration successful!');
-    } else {
+    } else if (response.statusCode == 422) {
       final errorData = json.decode(response.body);
-      throw Exception('Registration failed');
+
+      // Get first validation error (or show all if you prefer)
+      final errorMsg = errorData['detail'][0]['msg'];
+      _showErrorDialog('Validation Error: $errorMsg');
+    } else {
+      _showErrorDialog('Registration failed. Please try again.');
     }
   }
 
@@ -144,10 +212,12 @@ class _RegisterPageState extends State<RegisterPage> {
       'phone_number': phoneController.text.trim(),
       'email': emailController.text.trim(),
       'password_hash': passwordController.text,
-      'expertise_area': expertiseAreaController.text.trim(),
+      'expertise_area_ids': selectedExpertiseAreas, // Changed to array of IDs
       'role_id': selectedRole,
       'status': defaultStatus,
       'profile_image': profileImageBase64,
+      'psk_number': pskController.text.trim(),
+      'about': aboutController.text.trim(),
     };
 
     final response = await http.post(
@@ -199,6 +269,95 @@ class _RegisterPageState extends State<RegisterPage> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildExpertiseAreaSelector() {
+    // Email
+
+    if (_loadingExpertiseAreas) {
+      return Container(
+        height: 60,
+        decoration: BoxDecoration(
+          color: Colors.grey[200],
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: Colors.white),
+        ),
+        child: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+
+      children: [
+        MyTextfield(
+          controller: pskController,
+          hintText: 'Key in your LSK practicing certificate number',
+          obscureText: false,
+        ),
+        const SizedBox(height: 15),
+        MyTextfield(
+          controller: aboutController,
+          hintText:
+              'Write a brief description about yourself,eg education, experience, etc.',
+          obscureText: false,
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: Colors.grey[200],
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: Colors.white),
+          ),
+
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Select Expertise Areas',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey[600],
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                children: expertiseAreas.map((area) {
+                  final isSelected = selectedExpertiseAreas.contains(
+                    area['id'],
+                  );
+                  return FilterChip(
+                    label: Text(area['name']),
+                    selected: isSelected,
+                    onSelected: (selected) {
+                      setState(() {
+                        if (selected) {
+                          selectedExpertiseAreas.add(area['id']);
+                        } else {
+                          selectedExpertiseAreas.remove(area['id']);
+                        }
+                      });
+                    },
+                    selectedColor: Colors.blue.shade100,
+                    checkmarkColor: Colors.blue.shade700,
+                  );
+                }).toList(),
+              ),
+            ],
+          ),
+        ),
+        if (selectedExpertiseAreas.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Text(
+            'Selected: ${selectedExpertiseAreas.length} area(s)',
+            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+          ),
+        ],
+      ],
     );
   }
 
@@ -323,6 +482,8 @@ class _RegisterPageState extends State<RegisterPage> {
                 onChanged: (value) {
                   setState(() {
                     selectedRole = value!;
+                    // Clear expertise areas when role changes
+                    selectedExpertiseAreas.clear();
                   });
                 },
               ),
@@ -350,12 +511,9 @@ class _RegisterPageState extends State<RegisterPage> {
                 ),
               ],
 
-              if (roleString == 'Legal Aid Provider')
-                MyTextfield(
-                  controller: expertiseAreaController,
-                  hintText: 'Expertise Area',
-                  obscureText: false,
-                ),
+              if (roleString == 'Legal Aid Provider') ...[
+                _buildExpertiseAreaSelector(),
+              ],
 
               const SizedBox(height: 30),
 
@@ -447,9 +605,9 @@ class _RegisterPageState extends State<RegisterPage> {
     emailController.dispose();
     passwordController.dispose();
     emergencyContactController.dispose();
-    expertiseAreaController.dispose();
     emegencyContactNameController.dispose();
     emergencyContactEmailController.dispose();
+    confirmPasswordController.dispose();
     super.dispose();
   }
 }

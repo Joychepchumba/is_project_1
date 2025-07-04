@@ -72,7 +72,8 @@ class _AdminAnalyticsPageState extends State<AdminAnalyticsPage> {
   UserDistribution? userDistribution;
   DangerZonesData? dangerZonesData;
 
-  static const String baseUrl = 'https://423c-197-136-185-70.ngrok-free.app';
+  static const String baseUrl =
+      'https://e17f-2c0f-fe38-202a-73d8-e5b9-e215-ba01-337c.ngrok-free.app';
 
   @override
   void initState() {

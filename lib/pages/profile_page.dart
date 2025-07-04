@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:is_project_1/components/custom_admin.navbar.dart';
+import 'package:is_project_1/components/custom_blank_navbar.dart';
 import 'package:is_project_1/components/custom_bootom_navbar.dart';
 import 'package:is_project_1/components/custom_legal_navbar.dart';
 import 'package:is_project_1/models/profile_response.dart';
@@ -301,11 +302,12 @@ class _ProfilePageState extends State<ProfilePage> {
                               Colors.orange,
                             ),
                             if (profile?.userType == 'legal_aid' &&
-                                profile?.expertiseArea != null)
+                                profile?.expertiseAreas.isNotEmpty == true)
                               _buildInfoItem(
                                 Icons.gavel_outlined,
-                                'Expertise Area',
-                                profile!.expertiseArea!,
+                                'Expertise Areas', // Changed to plural
+                                profile!
+                                    .expertiseAreasString, // Use the helper method
                                 Colors.purple,
                               ),
                           ]),

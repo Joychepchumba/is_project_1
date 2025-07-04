@@ -5,7 +5,6 @@ import 'package:is_project_1/models/profile_response.dart';
 import 'package:is_project_1/pages/user_pages/map_page.dart';
 import 'package:is_project_1/pages/user_pages/user_legalaid.dart';
 import 'package:is_project_1/services/api_service.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 class PoliceLocation {
   final String name;

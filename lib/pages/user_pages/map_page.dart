@@ -23,7 +23,7 @@ import 'package:share_plus/share_plus.dart';
 class MapPage extends StatefulWidget {
   final bool triggerPanic;
 
-  const MapPage({Key? key, this.triggerPanic = false}) : super(key: key);
+  const MapPage({super.key, this.triggerPanic = false});
 
   @override
   State<MapPage> createState() => _MapPageState();
@@ -69,11 +69,11 @@ class DangerZone {
 
   factory DangerZone.fromJson(Map<String, dynamic> json) {
     return DangerZone(
-      name: json['name'],
-      latitude: json['latitude'].toDouble(),
-      longitude: json['longitude'].toDouble(),
+      name: json['location_name'] ?? 'Unknown',
+      latitude: (json['latitude'] as num).toDouble(),
+      longitude: (json['longitude'] as num).toDouble(),
       description: json['description'] ?? '',
-      radius: json['radius']?.toDouble() ?? 500.0, // default 500m
+      radius: (json['radius'] as num?)?.toDouble() ?? 500.0,
     );
   }
 }
@@ -93,9 +93,7 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
   List<PoliceLocation> policeLocations = [];
   List<DangerZone> dangerZones = [];
   Set<String> notifiedDangerZones = {};
-
-  static const String API_BASE_URL =
-      'https://423c-197-136-185-70.ngrok-free.app';
+  String API_BASE_URL = dotenv.env['API_BASE_URL'] ?? 'http://localhost:8000';
 
   // Emergency features
   List<EmergencyContact> emergencyContacts = [];
@@ -116,6 +114,7 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    loadEnv();
     _initializeMapbox();
     _setupPositionTracking();
     _loadEmergencyContacts();
@@ -127,6 +126,19 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _triggerPanicMode();
       });
+    }
+  }
+
+  Future<void> loadEnv() async {
+    try {
+      await dotenv.load(fileName: ".env");
+      setState(() {
+        API_BASE_URL =
+            dotenv.env['API_BASE_URL'] ??
+            'https://db85-197-136-185-70.ngrok-free.app'; // Default fallback
+      });
+    } catch (e) {
+      print('Error loading .env file: $e');
     }
   }
 
@@ -354,6 +366,8 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
               ),
               iconImage: "user-location", // You'll need to add this image asset
               iconSize: 1.2,
+              textField: "My location",
+              textColor: const Color.fromARGB(255, 105, 167, 248).value,
             );
 
             await manager.create(options);
@@ -825,11 +839,16 @@ Please check on them immediately!
     PoliceLocation police,
   ) async {
     try {
+      final ByteData bytes = await rootBundle.load(
+        'assets/images/police_marker.png',
+      );
+      final Uint8List imageData = bytes.buffer.asUint8List();
       final options = mp.PointAnnotationOptions(
         geometry: mp.Point(
           coordinates: mp.Position(police.longitude, police.latitude),
         ),
-        iconImage: "assets/images/police_marker.png", // Fixed quote
+
+        image: imageData, // Fixed quote
         iconSize: 1.0,
         textField: police.name,
         textOffset: [0.0, -2.0],
@@ -850,11 +869,15 @@ Please check on them immediately!
     DangerZone danger,
   ) async {
     try {
+      final ByteData bytes = await rootBundle.load(
+        'assets/images/danger_marker.png',
+      );
+      final Uint8List imageData = bytes.buffer.asUint8List();
       final options = mp.PointAnnotationOptions(
         geometry: mp.Point(
           coordinates: mp.Position(danger.longitude, danger.latitude),
         ),
-        iconImage: "assets/images/danger_marker.png", // Fixed quote
+        image: imageData, // Fixed quote
         iconSize: 1.0,
         textField: danger.name,
         textOffset: [0.0, -2.0],
