@@ -42,7 +42,7 @@ def verify_provider(provider_id: str):
 def get_provider_stats():
     try:
         total_result = supabase.table("legal_aid_providers").select("*", count="exact").execute()
-        pending_result = supabase.table("legal_aid_providers").select("*", count="exact").eq("status", "pending").execute()
+        pending_result = supabase.table("legal_aid_providers").select("*", count="exact").neq("status", "verified").execute()
 
         return {
             "total": len(total_result.data or []),
@@ -50,6 +50,7 @@ def get_provider_stats():
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching stats: {str(e)}")
+
 
 
 # --- SAFETY TIPS ---
