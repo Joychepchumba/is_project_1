@@ -1,4 +1,3 @@
-// Updated ProfileResponse to handle multiple expertise areas
 class ProfileResponse {
   final int id;
   final String name;
@@ -7,9 +6,9 @@ class ProfileResponse {
   final String? profileImage;
   final String userType;
   final int roleId;
-  final List<ExpertiseArea>
-  expertiseAreas; // Changed from single string to list
-  final EmergencyContact? emergencyContact; // Added emergency contact
+  final List<ExpertiseArea> expertiseAreas; // Fixed: Added missing type
+  final EmergencyContact? emergencyContact;
+  final DateTime? createdat; // Fixed: Changed from createdAt to createdat
 
   ProfileResponse({
     required this.id,
@@ -21,6 +20,7 @@ class ProfileResponse {
     required this.roleId,
     this.expertiseAreas = const [],
     this.emergencyContact,
+    this.createdat,
   });
 
   // Helper function for safe integer parsing
@@ -45,8 +45,12 @@ class ProfileResponse {
       emergencyContact: json['emergency_contact'] != null
           ? EmergencyContact.fromJson(json['emergency_contact'])
           : null,
+      createdat: json['createdat'] != null 
+          ? DateTime.tryParse(json['createdat'].toString())
+          : null,
     );
   }
+
 
   // Helper method to parse expertise areas
   static List<ExpertiseArea> _parseExpertiseAreas(dynamic expertiseData) {

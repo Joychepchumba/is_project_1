@@ -22,12 +22,25 @@ class _AdminHomepageState extends State<AdminHomepage> {
 Map<String, dynamic> analytics = {};
 Map<String, dynamic> providerStats = {};
 bool isLoading = true;
+String baseUrl =
+      'https://b2e5-197-136-185-70.ngrok-free.app';
 
 @override
 void initState() {
   super.initState();
+  loadEnv();
   _fetchDashboardData();
 }
+Future<void> loadEnv() async {
+    try {
+      await dotenv.load(fileName: ".env");
+      setState(() {
+        baseUrl = dotenv.env['API_BASE_URL'] ?? baseUrl;
+      });
+    } catch (e) {
+      print('Error loading .env file: $e');
+    }
+  }
 
 Future<void> _fetchDashboardData() async {
   final String baseUrl = dotenv.env['BASE_URL']!;

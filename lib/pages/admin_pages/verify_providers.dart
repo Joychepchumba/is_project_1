@@ -16,13 +16,26 @@ class _VerifyProvidersPageState extends State<VerifyProvidersPage> {
   List<dynamic> pendingProviders = [];
   int totalCount = 0;
   int pendingCount = 0;
-  final String baseUrl = dotenv.env['BASE_URL']!;
-
+  //final String baseUrl = dotenv.env['BASE_URL']!;
+  String baseUrl =
+      'https://b2e5-197-136-185-70.ngrok-free.app';
   @override
   void initState() {
     super.initState();
+    loadEnv();
     _loadPendingProviders();
     _loadStatistics();
+
+  }
+  Future<void> loadEnv() async {
+    try {
+      await dotenv.load(fileName: ".env");
+      setState(() {
+        baseUrl = dotenv.env['API_BASE_URL'] ?? baseUrl;
+      });
+    } catch (e) {
+      print('Error loading .env file: $e');
+    }
   }
 
   Future<void> _loadPendingProviders() async {
@@ -68,11 +81,6 @@ Future<void> _verifyProvider(String providerId) async {
   }
 }
 
-<<<<<<< HEAD
-=======
-class VerifyProvidersPage extends StatelessWidget {
-  const VerifyProvidersPage({super.key});
->>>>>>> origin/branch_joy
 
   @override
   Widget build(BuildContext context) {

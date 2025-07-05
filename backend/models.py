@@ -59,17 +59,7 @@ class ExpertiseArea(Base):
         back_populates="expertise_areas"
     )
 
-class ExpertiseArea(Base):
-    __tablename__ = "expertise_areas"
 
-    id = Column(Integer, primary_key=True)
-    name = Column(String(100), unique=True, nullable=False)
-
-    providers = relationship(
-        "LegalAidProvider",
-        secondary=legal_provider_expertise,
-        back_populates="expertise_areas"
-    )
 
 class LegalAidProvider(Base):
     __tablename__ = "legal_aid_providers"

@@ -13,12 +13,24 @@ class ModerateSafetyTipsPage extends StatefulWidget {
 class _ModerateSafetyTipsPageState extends State<ModerateSafetyTipsPage> {
   List<dynamic> safetyTips = [];
   String selectedStatus = 'pending';
-  final String baseUrl = dotenv.env['BASE_URL']!;
+  String baseUrl =
+      'https://b2e5-197-136-185-70.ngrok-free.app';
 
   @override
   void initState() {
     super.initState();
+    loadEnv();
     _loadSafetyTips();
+  }
+  Future<void> loadEnv() async {
+    try {
+      await dotenv.load(fileName: ".env");
+      setState(() {
+        baseUrl = dotenv.env['API_BASE_URL'] ?? baseUrl;
+      });
+    } catch (e) {
+      print('Error loading .env file: $e');
+    }
   }
 
   Future<void> _loadSafetyTips() async {

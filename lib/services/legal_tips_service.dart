@@ -19,7 +19,7 @@ class ApiResponse<T> {
 
 class LegalTipsService {
   static String baseUrl =
-      'https://8088-197-136-185-70.ngrok-free.app'; // Initialize with default value
+      'https://b2e5-197-136-185-70.ngrok-free.app'; // Initialize with default value
 
   Future<Map<String, String>> _headers() async {
     final token = await ApiService.getToken();

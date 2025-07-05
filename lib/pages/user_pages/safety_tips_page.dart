@@ -8,6 +8,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class SafetyTipsPage extends StatefulWidget {
   final bool showUploadDialog;
+  
   const SafetyTipsPage({super.key, this.showUploadDialog = false});
 
   @override
@@ -20,7 +21,8 @@ class _SafetyTipsPageState extends State<SafetyTipsPage> {
   List<dynamic> purchasedContentIds = [];
   String selectedCategory = 'All';
   String? userId;
-
+  String baseUrl =
+      'https://b2e5-197-136-185-70.ngrok-free.app';
   final List<String> categories = [
     'All',
     'Personal Safety',
@@ -32,12 +34,14 @@ class _SafetyTipsPageState extends State<SafetyTipsPage> {
   ];
 
   final int _selectedIndex = 2;
-  final String baseUrl = dotenv.env['BASE_URL']!;
+  
 
 
 @override
 void initState() {
   super.initState();
+   loadEnv();
+  //baseUrl = dotenv.env['BASE_URL'] ?? 'https://b2e5-197-136-185-70.ngrok-free.app';
   fetchUserIdFromToken().then((_) {
     fetchSafetyTips();
     fetchEducationalContent();
@@ -49,6 +53,16 @@ void initState() {
     }
   });
 }
+Future<void> loadEnv() async {
+    try {
+      await dotenv.load(fileName: ".env");
+      setState(() {
+        baseUrl = dotenv.env['API_BASE_URL'] ?? baseUrl;
+      });
+    } catch (e) {
+      print('Error loading .env file: $e');
+    }
+  }
 
   Future<void> fetchUserIdFromToken() async {
     final prefs = await SharedPreferences.getInstance();

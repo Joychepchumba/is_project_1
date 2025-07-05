@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class UploadEducationPage extends StatefulWidget {
   const UploadEducationPage({super.key});
@@ -13,6 +14,24 @@ class _UploadEducationPageState extends State<UploadEducationPage> {
   final _titleController = TextEditingController();
   final _contentController = TextEditingController();
   final _priceController = TextEditingController();
+  String baseUrl =
+      'https://b2e5-197-136-185-70.ngrok-free.app';
+  @override
+  void initState() {
+    super.initState();
+    loadEnv();
+  }
+
+  Future<void> loadEnv() async {
+    try {
+      await dotenv.load(fileName: ".env");
+      setState(() {
+        baseUrl = dotenv.env['API_BASE_URL'] ?? baseUrl;
+      });
+    } catch (e) {
+      print('Error loading .env file: $e');
+    }
+  }
 
   final List<String> _categories = [
     'Personal Safety',

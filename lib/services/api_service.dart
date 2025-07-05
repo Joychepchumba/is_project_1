@@ -295,7 +295,7 @@ class ApiService {
   static Future<void> loadEnv() async {
     try {
       await dotenv.load(fileName: ".env");
-      baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://localhost:8000';
+      baseUrl = dotenv.env['API_BASE_URL'] ?? 'https://b2e5-197-136-185-70.ngrok-free.app';
     } catch (e) {
       print('Error loading .env file: $e');
       baseUrl = 'http://localhost:8000';

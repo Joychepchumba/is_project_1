@@ -4,6 +4,9 @@ import 'package:is_project_1/pages/legal_aid_pages/legal_aid_clients_page.dart';
 import 'package:is_project_1/pages/legal_aid_pages/legal_aid_tips.dart';
 import 'package:is_project_1/pages/legal_aid_pages/legal_requests.dart';
 import 'package:is_project_1/pages/legal_aid_pages/my_tips.dart';
+import 'package:is_project_1/models/profile_response.dart';
+import 'package:is_project_1/pages/login_page.dart';
+import 'package:is_project_1/services/api_service.dart';
 
 class LegalAidHomepage extends StatefulWidget {
   const LegalAidHomepage({super.key});
@@ -13,6 +16,42 @@ class LegalAidHomepage extends StatefulWidget {
 }
 
 class _LegalAidHomepageState extends State<LegalAidHomepage> {
+  ProfileResponse? profile;
+   bool isLoading = true;
+  String? error;
+  @override
+  void initState() {
+    super.initState();
+    _loadProfileData();
+  }
+
+  Future<void> _loadProfileData() async {
+    try {
+      setState(() {
+        isLoading = true;
+        error = null;
+      });
+
+      // Load profile data
+      final profileData = await ApiService.getProfile();
+
+    
+      
+      setState(() {
+        profile = profileData;
+  
+        isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        error = e.toString();
+        isLoading = false;
+      });
+    }
+  }
+
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -59,12 +98,14 @@ class _LegalAidHomepageState extends State<LegalAidHomepage> {
               ),
             ),
             const SizedBox(height: 4),
-            const Text(
-              'Advocate Sarah Kimani',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
+            Text(
+                                  profile?.name.isNotEmpty == true
+                                      ? profile!.name[0].toUpperCase()
+                                      : 'U',
+                                  style: const TextStyle(
+                                    fontSize: 32,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
               ),
             ),
             const SizedBox(height: 24),
@@ -143,11 +184,12 @@ class _LegalAidHomepageState extends State<LegalAidHomepage> {
                     iconColor: const Color(0xFF4FABCB),
                     title: 'Add Legal tips',
                     onTap: () {
-                      //Navigator.push(
-                      //context,
-                      //MaterialPageRoute(
-                      //),
-                      //);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const LegalRequestsScreen(),
+                        ),
+                      );
                     },
                   ),
                 ),
@@ -184,52 +226,11 @@ class _LegalAidHomepageState extends State<LegalAidHomepage> {
                 ),
               ],
             ),
-            const SizedBox(height: 32),
-
-            // Recent Activity Section
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Recent Activity',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
-                ),
-                Icon(
-                  Icons.keyboard_arrow_down,
-                  color: Colors.grey[600],
-                  size: 24,
-                ),
-              ],
-            ),
+            
             const SizedBox(height: 16),
 
             // Activity Items (placeholder)
-            Container(
-              width: double.infinity,
-              height: 100,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.withOpacity(0.1),
-                    spreadRadius: 1,
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: const Center(
-                child: Text(
-                  'No recent activity',
-                  style: TextStyle(color: Colors.grey, fontSize: 14),
-                ),
-              ),
-            ),
+            
           ],
         ),
       ),

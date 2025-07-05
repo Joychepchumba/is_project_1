@@ -5,7 +5,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:http/http.dart' as http;
 import 'package:is_project_1/components/custom_admin.navbar.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-
+/*
 class UserDistribution {
   final int totalUsers;
 
@@ -22,7 +22,7 @@ class UserDistribution {
       admins: json['admins'] ?? 0,
     );
   }
-}
+}*/
 
 class DangerZoneDataPoint {
   final String location;
@@ -63,22 +63,38 @@ class AdminAnalyticsPage extends StatefulWidget {
   State<AdminAnalyticsPage> createState() => _AdminAnalyticsPageState();
 }
 
+
 class _AdminAnalyticsPageState extends State<AdminAnalyticsPage> {
   Map<String, dynamic> analytics = {};
   bool isLoading = true;
   String? error;
 
-  UserDistribution? userDistribution;
+  //UserDistribution? userDistribution;
   DangerZonesData? dangerZonesData;
 
-  static const String baseUrl =
-      'https://e17f-2c0f-fe38-202a-73d8-e5b9-e215-ba01-337c.ngrok-free.app';
+  String baseUrl = 'https://b2e5-197-136-185-70.ngrok-free.app';
 
   @override
   void initState() {
     super.initState();
-    _loadAnalyticsData();
-    _fetchAnalytics();
+    _initializeData();
+  }
+
+  Future<void> _initializeData() async {
+    await _loadEnv();
+    await _loadAnalyticsData();
+    await _fetchAnalytics();
+  }
+
+  Future<void> _loadEnv() async {
+    try {
+      await dotenv.load(fileName: ".env");
+      setState(() {
+        baseUrl = dotenv.env['API_BASE_URL'] ?? baseUrl;
+      });
+    } catch (e) {
+      print('Error loading .env file: $e');
+    }
   }
   Future<void> _fetchAnalytics() async {
     final String baseUrl = dotenv.env['BASE_URL']!;
@@ -107,7 +123,7 @@ class _AdminAnalyticsPageState extends State<AdminAnalyticsPage> {
       });
 
       // Fetch all analytics data
-      await Future.wait([_fetchUserDistribution(), _fetchDangerZonesData()]);
+      await Future.wait([ _fetchDangerZonesData()]);
 
       setState(() {
         isLoading = false;
@@ -120,7 +136,7 @@ class _AdminAnalyticsPageState extends State<AdminAnalyticsPage> {
     }
   }
 
-  Future<void> _fetchUserDistribution() async {
+  /*Future<void> _fetchUserDistribution() async {
     try {
       final response = await http.get(
         Uri.parse('$baseUrl/analytics/user-distribution'),
@@ -148,7 +164,7 @@ class _AdminAnalyticsPageState extends State<AdminAnalyticsPage> {
         admins: 20,
       );
     }
-  }
+  }*/
 
   Future<void> _fetchDangerZonesData() async {
     try {
@@ -250,7 +266,7 @@ class _AdminAnalyticsPageState extends State<AdminAnalyticsPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Usage Metrics Card
-                    if (userDistribution != null) _buildUsageMetricsCard(),
+                     _buildUsageMetricsCard(),
                     const SizedBox(height: 20),
 
                     // Revenue Generated Card
@@ -259,6 +275,9 @@ class _AdminAnalyticsPageState extends State<AdminAnalyticsPage> {
 
                     // Frequent Danger Zones Card
                     if (dangerZonesData != null) _buildDangerZonesCard(),
+
+                    const SizedBox(height: 20),
+                    _buildSafetyTipsCard(),
                   ],
                 ),
               ),
@@ -324,7 +343,7 @@ class _AdminAnalyticsPageState extends State<AdminAnalyticsPage> {
                       ),
                     ),
                     PieChartSectionData(
-                      color:  const Color.fromARGB(255, 243, 174, 255),,
+                      color:  const Color.fromARGB(255, 243, 174, 255),
                       value: (analytics['admins'] ?? 0).toDouble(),
                       title: '${analytics['admins'] ?? 0}',
                       radius: 50,
