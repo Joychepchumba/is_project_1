@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
 import 'package:is_project_1/components/custom_admin.navbar.dart';
+import 'package:is_project_1/components/custom_blank_navbar.dart';
 import 'package:is_project_1/components/custom_bootom_navbar.dart';
 import 'package:is_project_1/components/custom_legal_navbar.dart';
 import 'package:is_project_1/models/profile_response.dart';
@@ -102,7 +104,9 @@ class _ProfilePageState extends State<ProfilePage> {
   String _getMemberSinceText() {
     // You can implement member since logic here
     // For now, using a placeholder
-    return 'Member since 2024';
+    return profile?.createdat != null
+        ? 'Member since ${profile!.createdat!.toLocal().toString().split(' ')[0]}'
+        : 'Member since Unknown';
   }
 
   String _getProfileImageUrl() {
@@ -200,32 +204,25 @@ class _ProfilePageState extends State<ProfilePage> {
                     children: [
                       const SizedBox(height: 20),
                       // Profile Picture
-                      Container(
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 4),
+                     Container(
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 4),
+                          ),
+                          child: CircleAvatar(
+                            radius: 50,
+                            backgroundImage: (profile?.profileImage != null &&
+                                            profile!.profileImage!.isNotEmpty)
+                                ? MemoryImage(base64Decode(profile!.profileImage!))
+                                : null,
+                            backgroundColor: Colors.blue[100],
+                            child: profile?.profileImage == null || profile!.profileImage!.isEmpty
+                                ? Icon(Icons.person, color: Colors.blue[600], size: 50)
+                                : null,
+                          ),
                         ),
-                        child: CircleAvatar(
-                          radius: 50,
-                          backgroundImage: NetworkImage(_getProfileImageUrl()),
-                          onBackgroundImageError: (exception, stackTrace) {
-                            // Handle image loading error
-                          },
-                          child: profile?.profileImage == null
-                              ? Text(
-                                  profile?.name.isNotEmpty == true
-                                      ? profile!.name[0].toUpperCase()
-                                      : 'U',
-                                  style: const TextStyle(
-                                    fontSize: 32,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                  ),
-                                )
-                              : null,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
+                        const SizedBox(height: 16),
+                        // Name and Title
                       // Name and Title
                       Text(
                         profile?.name ?? 'Unknown User',
@@ -301,11 +298,12 @@ class _ProfilePageState extends State<ProfilePage> {
                               Colors.orange,
                             ),
                             if (profile?.userType == 'legal_aid' &&
-                                profile?.expertiseArea != null)
+                                profile?.expertiseAreas.isNotEmpty == true)
                               _buildInfoItem(
                                 Icons.gavel_outlined,
-                                'Expertise Area',
-                                profile!.expertiseArea!,
+                                'Expertise Areas', // Changed to plural
+                                profile!
+                                    .expertiseAreasString, // Use the helper method
                                 Colors.purple,
                               ),
                           ]),
@@ -350,12 +348,9 @@ class _ProfilePageState extends State<ProfilePage> {
                                 ),
                               )
                             else
-                              ...emergencyContacts
-                                  .map(
-                                    (contact) =>
-                                        _buildEmergencyContact(contact),
-                                  )
-                                  ,
+                              ...emergencyContacts.map(
+                                (contact) => _buildEmergencyContact(contact),
+                              ),
                           ],
 
                           const SizedBox(height: 40),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:is_project_1/pages/legal_aid_pages/legal_aid_cases_page.dart';
 import 'package:is_project_1/pages/legal_aid_pages/legal_aid_clients_page.dart';
+import 'package:is_project_1/pages/legal_aid_pages/legal_aid_tips.dart';
 import 'package:is_project_1/pages/legal_aid_pages/legalaid_homepage.dart';
 
 import 'package:is_project_1/pages/profile_page.dart';
@@ -37,7 +38,12 @@ class CustomLegalNavigationBar extends StatelessWidget {
         // Navigate to Maps
         Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (context) => const LegalCasesPage()),
+          MaterialPageRoute(
+            builder: (context) => AddLegalTipScreen(
+              legalAidProviderId:
+                  '06bfd857-ad34-42d7-be7b-9531aa51ddaf', // Replace with actual ID
+            ),
+          ),
           (route) => false,
         );
         break;
@@ -64,7 +70,10 @@ class CustomLegalNavigationBar extends StatelessWidget {
       items: const [
         BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
         BottomNavigationBarItem(icon: Icon(Icons.people), label: 'Clients'),
-        BottomNavigationBarItem(icon: Icon(Icons.folder), label: 'Cases'),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.folder),
+          label: 'Legal Aid Tips',
+        ),
         BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
       ],
     );
