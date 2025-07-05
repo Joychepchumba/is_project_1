@@ -14,7 +14,7 @@ class _ModerateSafetyTipsPageState extends State<ModerateSafetyTipsPage> {
   List<dynamic> safetyTips = [];
   String selectedStatus = 'pending';
   String baseUrl =
-      'https://b2e5-197-136-185-70.ngrok-free.app';
+      'https://d2cb-41-90-178-146.ngrok-free.app';
 
   @override
   void initState() {

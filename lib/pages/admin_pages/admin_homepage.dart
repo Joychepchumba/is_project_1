@@ -23,7 +23,7 @@ Map<String, dynamic> analytics = {};
 Map<String, dynamic> providerStats = {};
 bool isLoading = true;
 String baseUrl =
-      'https://b2e5-197-136-185-70.ngrok-free.app';
+      'https://d2cb-41-90-178-146.ngrok-free.app';
 
 @override
 void initState() {
@@ -43,9 +43,10 @@ Future<void> loadEnv() async {
   }
 
 Future<void> _fetchDashboardData() async {
-  final String baseUrl = dotenv.env['BASE_URL']!;
-  final analyticsRes = await http.get(Uri.parse('$baseUrl/analytics/overview'));
-  final providerStatsRes = await http.get(Uri.parse('$baseUrl/provider_stats'));
+  final String url = baseUrl;
+
+  final analyticsRes = await http.get(Uri.parse('$url/analytics/overview'));
+  final providerStatsRes = await http.get(Uri.parse('$url/provider_stats'));
 
   print("analyticsRes: ${analyticsRes.body}");
   print("providerStatsRes: ${providerStatsRes.body}");
@@ -63,6 +64,7 @@ Future<void> _fetchDashboardData() async {
     );
   }
 }
+
 
 
 String _getTotalRevenue() {

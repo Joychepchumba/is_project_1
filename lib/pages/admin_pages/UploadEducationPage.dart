@@ -15,7 +15,7 @@ class _UploadEducationPageState extends State<UploadEducationPage> {
   final _contentController = TextEditingController();
   final _priceController = TextEditingController();
   String baseUrl =
-      'https://b2e5-197-136-185-70.ngrok-free.app';
+      'https://d2cb-41-90-178-146.ngrok-free.app';
   @override
   void initState() {
     super.initState();
