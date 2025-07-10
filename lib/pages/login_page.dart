@@ -25,8 +25,7 @@ class _LoginPageState extends State<LoginPage> {
   final passwordController = TextEditingController();
   bool isLoading = false;
   bool _obscurePassword = true;
-  String baseUrl =
-      'https://03b6-197-136-185-70.ngrok-free.app'; // Default fallback
+  String baseUrl = 'https://b0b2bb2b9a75.ngrok-free.app'; // Default fallback
 
   @override
   void initState() {

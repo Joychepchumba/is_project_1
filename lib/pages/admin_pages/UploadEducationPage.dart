@@ -14,8 +14,7 @@ class _UploadEducationPageState extends State<UploadEducationPage> {
   final _titleController = TextEditingController();
   final _contentController = TextEditingController();
   final _priceController = TextEditingController();
-  String baseUrl =
-      'https://d2cb-41-90-178-146.ngrok-free.app';
+  String baseUrl = 'https://b0b2bb2b9a75.ngrok-free.app';
   @override
   void initState() {
     super.initState();
@@ -62,15 +61,17 @@ class _UploadEducationPageState extends State<UploadEducationPage> {
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Educational content uploaded successfully!')),
+          const SnackBar(
+            content: Text('Educational content uploaded successfully!'),
+          ),
         );
         Navigator.pop(context);
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Upload failed: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Upload failed: $e')));
       }
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
@@ -98,14 +99,16 @@ class _UploadEducationPageState extends State<UploadEducationPage> {
               TextFormField(
                 controller: _titleController,
                 decoration: const InputDecoration(labelText: 'Title'),
-                validator: (val) => val == null || val.isEmpty ? 'Enter a title' : null,
+                validator: (val) =>
+                    val == null || val.isEmpty ? 'Enter a title' : null,
               ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: _contentController,
                 decoration: const InputDecoration(labelText: 'Content'),
                 maxLines: 6,
-                validator: (val) => val == null || val.isEmpty ? 'Enter the content' : null,
+                validator: (val) =>
+                    val == null || val.isEmpty ? 'Enter the content' : null,
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
@@ -138,7 +141,9 @@ class _UploadEducationPageState extends State<UploadEducationPage> {
                 child: ElevatedButton.icon(
                   onPressed: _isSubmitting ? null : _submitContent,
                   icon: const Icon(Icons.upload),
-                  label: Text(_isSubmitting ? 'Uploading...' : 'Upload Content'),
+                  label: Text(
+                    _isSubmitting ? 'Uploading...' : 'Upload Content',
+                  ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF4FABCB),
                     padding: const EdgeInsets.symmetric(vertical: 14),

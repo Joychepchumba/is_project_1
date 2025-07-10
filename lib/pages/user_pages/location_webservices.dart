@@ -45,7 +45,7 @@ class LocationWebSocketService {
     _userId = userId;
     final wsUrl =
         baseUrl ??
-        'ws://9626-197-136-185-70.ngrok-free.app'; // Replace with your actual WebSocket URL
+        'ws://cd26-197-136-185-70.ngrok-free.app'; // Replace with your actual WebSocket URL
     final uri = '$wsUrl/ws/location/$userId';
 
     try {

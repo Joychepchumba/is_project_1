@@ -4,7 +4,6 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-
 class VerifyProvidersPage extends StatefulWidget {
   const VerifyProvidersPage({super.key});
 
@@ -17,16 +16,15 @@ class _VerifyProvidersPageState extends State<VerifyProvidersPage> {
   int totalCount = 0;
   int pendingCount = 0;
   //final String baseUrl = dotenv.env['BASE_URL']!;
-  String baseUrl =
-      'https://d2cb-41-90-178-146.ngrok-free.app';
+  String baseUrl = 'https://b0b2bb2b9a75.ngrok-free.app';
   @override
   void initState() {
     super.initState();
     loadEnv();
     _loadPendingProviders();
     _loadStatistics();
-
   }
+
   Future<void> loadEnv() async {
     try {
       await dotenv.load(fileName: ".env");
@@ -45,42 +43,40 @@ class _VerifyProvidersPageState extends State<VerifyProvidersPage> {
         pendingProviders = jsonDecode(response.body);
       });
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Failed to load providers")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Failed to load providers")));
     }
   }
 
-Future<void> _loadStatistics() async {
-  final response = await http.get(Uri.parse('$baseUrl/provider_stats'));
-  if (response.statusCode == 200) {
-    final data = jsonDecode(response.body);
-    setState(() {
-      totalCount = data['total'];
-      pendingCount = data['pending'];
-    });
+  Future<void> _loadStatistics() async {
+    final response = await http.get(Uri.parse('$baseUrl/provider_stats'));
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      setState(() {
+        totalCount = data['total'];
+        pendingCount = data['pending'];
+      });
+    }
   }
-}
 
-
-Future<void> _verifyProvider(String providerId) async {
-  final response = await http.put(
-    Uri.parse('$baseUrl/verify_provider/$providerId'),
-    headers: {'Content-Type': 'application/json'},
-  );
-
-  if (response.statusCode == 200) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Provider verified")),
+  Future<void> _verifyProvider(String providerId) async {
+    final response = await http.put(
+      Uri.parse('$baseUrl/verify_provider/$providerId'),
+      headers: {'Content-Type': 'application/json'},
     );
-    await _loadPendingProviders(); // Refresh list
-  } else {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Verification failed")),
-    );
+
+    if (response.statusCode == 200) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Provider verified")));
+      await _loadPendingProviders(); // Refresh list
+    } else {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Verification failed")));
+    }
   }
-}
-
 
   @override
   Widget build(BuildContext context) {
@@ -158,14 +154,14 @@ Future<void> _verifyProvider(String providerId) async {
                     color: Colors.blue.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(16),
                   ),
-                 child: Text(
-  '${pendingProviders.length} Pending',
-  style: const TextStyle(
-    color: Colors.blue,
-    fontSize: 14,
-    fontWeight: FontWeight.w500,
-  ),
-),
+                  child: Text(
+                    '${pendingProviders.length} Pending',
+                    style: const TextStyle(
+                      color: Colors.blue,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -173,28 +169,30 @@ Future<void> _verifyProvider(String providerId) async {
 
             // Provider Cards
             Column(
-  children: pendingProviders.map((provider) {
-    final initials = provider['full_name']
-      .split(' ')
-      .map((s) => s[0])
-      .take(2)
-      .join();
+              children: pendingProviders.map((provider) {
+                final initials = provider['full_name']
+                    .split(' ')
+                    .map((s) => s[0])
+                    .take(2)
+                    .join();
 
-    return _buildProviderCard(
-      name: provider['full_name'],
-      phone: provider['phone_number'],
-      expertise: provider['legal_provider_expertise'] != null &&
-                 provider['legal_provider_expertise'] is List &&
-                 provider['legal_provider_expertise'].isNotEmpty
-                 ? (provider['legal_provider_expertise'][0]['expertise_areas']?['name'] ?? 'N/A')
-                 : 'N/A',
-      lskNumber: provider['psk_number'],
-      avatarText: initials.toUpperCase(),
-      avatarColor: const Color(0xFF7BB3C7),
-      providerId: provider['id'], 
-    );
-  }).toList(),
-),
+                return _buildProviderCard(
+                  name: provider['full_name'],
+                  phone: provider['phone_number'],
+                  expertise:
+                      provider['legal_provider_expertise'] != null &&
+                          provider['legal_provider_expertise'] is List &&
+                          provider['legal_provider_expertise'].isNotEmpty
+                      ? (provider['legal_provider_expertise'][0]['expertise_areas']?['name'] ??
+                            'N/A')
+                      : 'N/A',
+                  lskNumber: provider['psk_number'],
+                  avatarText: initials.toUpperCase(),
+                  avatarColor: const Color(0xFF7BB3C7),
+                  providerId: provider['id'],
+                );
+              }).toList(),
+            ),
             const SizedBox(height: 32),
 
             // Statistics Section
@@ -213,7 +211,7 @@ Future<void> _verifyProvider(String providerId) async {
     required String lskNumber,
     required String avatarText,
     required Color avatarColor,
-    required  providerId,
+    required providerId,
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -291,17 +289,17 @@ Future<void> _verifyProvider(String providerId) async {
               ),
             ),
             const SizedBox(height: 16),
-                SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
                 onPressed: () => _verifyProvider(providerId),
                 style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
-                foregroundColor: Colors.white,
+                  backgroundColor: Colors.green,
+                  foregroundColor: Colors.white,
                 ),
                 child: const Text("Verify"),
-                ),
               ),
+            ),
           ],
         ),
       ),
@@ -384,5 +382,4 @@ Future<void> _verifyProvider(String providerId) async {
       ],
     );
   }
-
 }

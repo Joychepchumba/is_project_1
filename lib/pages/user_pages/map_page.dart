@@ -135,7 +135,7 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
       setState(() {
         API_BASE_URL =
             dotenv.env['API_BASE_URL'] ??
-            'https://db85-197-136-185-70.ngrok-free.app'; // Default fallback
+            'https://b0b2bb2b9a75.ngrok-free.app'; // Default fallback
       });
     } catch (e) {
       print('Error loading .env file: $e');

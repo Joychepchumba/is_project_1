@@ -71,7 +71,7 @@ class LegalTipDetailPage extends StatelessWidget {
   // Convert local file path to full URL
   String buildFullImageUrl(String imagePath) {
     // Replace with your actual server base URL
-    const String baseUrl = 'https://d2cb-41-90-178-146.ngrok-free.app'; // UPDATE THIS!
+    const String baseUrl = 'https://b0b2bb2b9a75.ngrok-free.app'; // UPDATE THIS!
     
     if (imagePath.startsWith('/')) {
       return '$baseUrl$imagePath';

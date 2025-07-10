@@ -6,6 +6,7 @@ import 'package:is_project_1/components/custom_bootom_navbar.dart';
 import 'package:is_project_1/components/custom_legal_navbar.dart';
 import 'package:is_project_1/models/profile_response.dart';
 import 'package:is_project_1/pages/login_page.dart';
+import 'package:is_project_1/pages/user_pages/user_analytics.dart';
 import 'package:is_project_1/services/api_service.dart'; // Import your API service
 
 class ProfilePage extends StatefulWidget {
@@ -204,25 +205,34 @@ class _ProfilePageState extends State<ProfilePage> {
                     children: [
                       const SizedBox(height: 20),
                       // Profile Picture
-                     Container(
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 4),
-                          ),
-                          child: CircleAvatar(
-                            radius: 50,
-                            backgroundImage: (profile?.profileImage != null &&
-                                            profile!.profileImage!.isNotEmpty)
-                                ? MemoryImage(base64Decode(profile!.profileImage!))
-                                : null,
-                            backgroundColor: Colors.blue[100],
-                            child: profile?.profileImage == null || profile!.profileImage!.isEmpty
-                                ? Icon(Icons.person, color: Colors.blue[600], size: 50)
-                                : null,
-                          ),
+                      Container(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 4),
                         ),
-                        const SizedBox(height: 16),
-                        // Name and Title
+                        child: CircleAvatar(
+                          radius: 50,
+                          backgroundImage:
+                              (profile?.profileImage != null &&
+                                  profile!.profileImage!.isNotEmpty)
+                              ? MemoryImage(
+                                  base64Decode(profile!.profileImage!),
+                                )
+                              : null,
+                          backgroundColor: Colors.blue[100],
+                          child:
+                              profile?.profileImage == null ||
+                                  profile!.profileImage!.isEmpty
+                              ? Icon(
+                                  Icons.person,
+                                  color: Colors.blue[600],
+                                  size: 50,
+                                )
+                              : null,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      // Name and Title
                       // Name and Title
                       Text(
                         profile?.name ?? 'Unknown User',
@@ -368,6 +378,21 @@ class _ProfilePageState extends State<ProfilePage> {
                               ).then(
                                 (_) => _loadProfileData(),
                               ); // Refresh on return
+                            },
+                          ),
+                          const SizedBox(height: 40),
+                          _buildActionButton(
+                            'My Analytics',
+                            Colors.blue,
+                            Icons.edit,
+                            () {
+                              // Navigate to edit profile page
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const UserAnalytics(),
+                                ),
+                              );
                             },
                           ),
                           const SizedBox(height: 12),

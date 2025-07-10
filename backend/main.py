@@ -3,7 +3,7 @@ import logging
 import traceback
 import uuid
 
-from sqlalchemy import UUID
+from sqlalchemy import UUID, func
 
 from schema import RealTimeGPSLogCreate, RealTimeGPSLogShow
 
@@ -950,7 +950,7 @@ async def share_location_with_contacts(
         
         # Get the base URL
         ##base_url = os.getenv("API_BASE_URL", "https://2b00-2c0f-fe38-219b-d073-f583-7cfc-f676-cc1.ngrok-free.app")
-        base_url = "https://b2e5-197-136-185-70.ngrok-free.app"
+        base_url = "https://b0b2bb2b9a75.ngrok-free.app"
         
         # Create URLs
         full_tracking_url = f"{base_url}/gps/track/{current_user['user_id']}?session_token={session_token}"
@@ -1825,7 +1825,7 @@ async def get_shareable_link(
         # Create URLs
         short_token = sharing_session.session_token[:12]
         ##base_url = os.getenv("API_BASE_URL", "https://2b00-2c0f-fe38-219b-d073-f583-7cfc-f676-cc1.ngrok-free.app")  # Replace with your actual domain
-        base_url="https://b2e5-197-136-185-70.ngrok-free.app"
+        base_url="https://b0b2bb2b9a75.ngrok-free.app"
         short_url = f"{base_url}/track/{short_token}"
         full_url = f"{base_url}/gps/track/{sharing_session.user_id}?session_token={sharing_session.session_token}"
         
@@ -2298,8 +2298,262 @@ async def create_legal_aid_request(
             detail=f"Error creating legal aid request: {str(e)}"
         )
 
+from sqlalchemy import func, text
+from datetime import datetime, timedelta
+
+@app.get("/analytics/recent-locations")
+async def get_recent_locations_analytics_fixed(
+    db: Session = Depends(get_db)
+):
+    """Fixed recent locations analytics - PostgreSQL compatible"""
+    # Use the specific user ID for testing
+    test_user_id = "98cd414b-f720-419b-98b5-04ececc0b322"
+    
+    try:
+        # First, verify the user exists
+        test_user = db.query(User).filter(User.id == test_user_id).first()
+        if not test_user:
+            return {"error": f"Test user {test_user_id} not found in database"}
+        
+        print(f"Testing with user: {test_user.email}")
+        
+        # Get users with recent GPS logs (last 7 days)
+        seven_days_ago = datetime.now() - timedelta(days=7)
+        
+        # Simplified query for users with recent location data
+        recent_locations_query = db.query(
+            RealTimeGPSLog.user_id,
+            func.count(RealTimeGPSLog.id).label('total_logs'),
+            func.max(RealTimeGPSLog.recorded_at).label('last_recorded'),
+            func.min(RealTimeGPSLog.recorded_at).label('first_recorded')
+        ).filter(
+            RealTimeGPSLog.recorded_at >= seven_days_ago
+        ).group_by(RealTimeGPSLog.user_id).all()
+        
+        print(f"Found {len(recent_locations_query)} users with recent location data")
+        
+        # Get total users count
+        total_users = db.query(User).count()
+        print(f"Total users in database: {total_users}")
+        
+        # Get users with location sharing enabled
+        active_users = len(recent_locations_query)
+        inactive_users = total_users - active_users
+        
+        # Simplified top locations query using raw SQL for PostgreSQL compatibility
+        top_locations_raw = db.execute(text("""
+            SELECT 
+                ROUND(CAST(latitude AS NUMERIC), 3) as lat,
+                ROUND(CAST(longitude AS NUMERIC), 3) as lng,
+                COUNT(*) as visit_count
+            FROM realtime_gps_logs 
+            WHERE recorded_at >= :seven_days_ago
+            GROUP BY ROUND(CAST(latitude AS NUMERIC), 3), ROUND(CAST(longitude AS NUMERIC), 3)
+            ORDER BY COUNT(*) DESC
+            LIMIT 10
+        """), {"seven_days_ago": seven_days_ago}).fetchall()
+        
+        print(f"Found {len(top_locations_raw)} top locations")
+        
+        # Recent user activities
+        recent_activities = db.query(
+            User.email,
+            RealTimeGPSLog.latitude,
+            RealTimeGPSLog.longitude,
+            RealTimeGPSLog.recorded_at,
+            Activity.name.label('activity_name')
+        ).join(
+            RealTimeGPSLog, User.id == RealTimeGPSLog.user_id
+        ).join(
+            Activity, RealTimeGPSLog.activity_id == Activity.id
+        ).filter(
+            RealTimeGPSLog.recorded_at >= seven_days_ago
+        ).order_by(
+            RealTimeGPSLog.recorded_at.desc()
+        ).limit(20).all()
+        
+        print(f"Found {len(recent_activities)} recent activities")
+        
+        # Check if our test user has any GPS logs
+        test_user_logs = db.query(RealTimeGPSLog).filter(
+            RealTimeGPSLog.user_id == test_user_id,
+            RealTimeGPSLog.recorded_at >= seven_days_ago
+        ).count()
+        
+        print(f"Test user has {test_user_logs} GPS logs in the last 7 days")
+        
+        # Calculate unique locations for each user using a separate query
+        user_stats_with_unique_locations = []
+        for stat in recent_locations_query:
+            # Get unique locations for this user
+            unique_locations_count = db.execute(text("""
+                SELECT COUNT(DISTINCT(
+                    ROUND(CAST(latitude AS NUMERIC), 3)::text || ',' || 
+                    ROUND(CAST(longitude AS NUMERIC), 3)::text
+                ))
+                FROM realtime_gps_logs 
+                WHERE user_id = :user_id AND recorded_at >= :seven_days_ago
+            """), {
+                "user_id": stat.user_id, 
+                "seven_days_ago": seven_days_ago
+            }).scalar()
+            
+            user_stats_with_unique_locations.append({
+                "user_id": str(stat.user_id),
+                "total_logs": stat.total_logs,
+                "unique_locations": unique_locations_count,
+                "last_recorded": stat.last_recorded.isoformat(),
+                "first_recorded": stat.first_recorded.isoformat()
+            })
+        
+        return {
+            "test_info": {
+                "user_id": test_user_id,
+                "user_email": test_user.email,
+                "user_gps_logs_count": test_user_logs
+            },
+            "total_users": total_users,
+            "active_location_users": active_users,
+            "inactive_location_users": inactive_users,
+            "location_sharing_rate": round((active_users / total_users * 100), 1) if total_users > 0 else 0,
+            "top_locations": [
+                {
+                    "latitude": float(row.lat),
+                    "longitude": float(row.lng),
+                    "visit_count": row.visit_count
+                }
+                for row in top_locations_raw
+            ],
+            "recent_activities": [
+                {
+                    "user_email": activity.email,
+                    "latitude": activity.latitude,
+                    "longitude": activity.longitude,
+                    "activity_name": activity.activity_name,
+                    "recorded_at": activity.recorded_at.isoformat()
+                }
+                for activity in recent_activities
+            ],
+            "user_location_stats": user_stats_with_unique_locations
+        }
+        
+    except Exception as e:
+        print(f"Error in fixed endpoint: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Error fetching location analytics: {str(e)}")
 
 
+# Also, here's the corrected version of your original endpoint
+@app.get("/analytics/recent-locations-analytics")
+async def get_recent_locations_analytics(
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """Get recent locations analytics - accessible to any authenticated user - FIXED"""
+    try:
+        # Get users with recent GPS logs (last 7 days)
+        seven_days_ago = datetime.now() - timedelta(days=7)
+        
+        # Simplified query for users with recent location data (removed problematic unique_locations)
+        recent_locations_query = db.query(
+            RealTimeGPSLog.user_id,
+            func.count(RealTimeGPSLog.id).label('total_logs'),
+            func.max(RealTimeGPSLog.recorded_at).label('last_recorded'),
+            func.min(RealTimeGPSLog.recorded_at).label('first_recorded')
+        ).filter(
+            RealTimeGPSLog.recorded_at >= seven_days_ago
+        ).group_by(RealTimeGPSLog.user_id).all()
+        
+        # Get total users count
+        total_users = db.query(User).count()
+        
+        # Get users with location sharing enabled
+        active_users = len(recent_locations_query)
+        inactive_users = total_users - active_users
+        
+        # Get top locations using raw SQL for PostgreSQL compatibility
+        top_locations_raw = db.execute(text("""
+            SELECT 
+                ROUND(CAST(latitude AS NUMERIC), 3) as lat,
+                ROUND(CAST(longitude AS NUMERIC), 3) as lng,
+                COUNT(*) as visit_count
+            FROM realtime_gps_logs 
+            WHERE recorded_at >= :seven_days_ago
+            GROUP BY ROUND(CAST(latitude AS NUMERIC), 3), ROUND(CAST(longitude AS NUMERIC), 3)
+            ORDER BY COUNT(*) DESC
+            LIMIT 10
+        """), {"seven_days_ago": seven_days_ago}).fetchall()
+        
+        # Recent user activities
+        recent_activities = db.query(
+            User.email,
+            RealTimeGPSLog.latitude,
+            RealTimeGPSLog.longitude,
+            RealTimeGPSLog.recorded_at,
+            Activity.name.label('activity_name')
+        ).join(
+            RealTimeGPSLog, User.id == RealTimeGPSLog.user_id
+        ).join(
+            Activity, RealTimeGPSLog.activity_id == Activity.id
+        ).filter(
+            RealTimeGPSLog.recorded_at >= seven_days_ago
+        ).order_by(
+            RealTimeGPSLog.recorded_at.desc()
+        ).limit(20).all()
+        
+        # Calculate unique locations for each user using separate queries
+        user_stats_with_unique_locations = []
+        for stat in recent_locations_query:
+            # Get unique locations for this user
+            unique_locations_count = db.execute(text("""
+                SELECT COUNT(DISTINCT(
+                    ROUND(CAST(latitude AS NUMERIC), 3)::text || ',' || 
+                    ROUND(CAST(longitude AS NUMERIC), 3)::text
+                ))
+                FROM realtime_gps_logs 
+                WHERE user_id = :user_id AND recorded_at >= :seven_days_ago
+            """), {
+                "user_id": stat.user_id, 
+                "seven_days_ago": seven_days_ago
+            }).scalar()
+            
+            user_stats_with_unique_locations.append({
+                "user_id": str(stat.user_id),
+                "total_logs": stat.total_logs,
+                "unique_locations": unique_locations_count,
+                "last_recorded": stat.last_recorded.isoformat(),
+                "first_recorded": stat.first_recorded.isoformat()
+            })
+        
+        return {
+            "total_users": total_users,
+            "active_location_users": active_users,
+            "inactive_location_users": inactive_users,
+            "location_sharing_rate": round((active_users / total_users * 100), 1) if total_users > 0 else 0,
+            "top_locations": [
+                {
+                    "latitude": float(row.lat),
+                    "longitude": float(row.lng),
+                    "visit_count": row.visit_count
+                }
+                for row in top_locations_raw
+            ],
+            "recent_activities": [
+                {
+                    "user_email": activity.email,
+                    "latitude": activity.latitude,
+                    "longitude": activity.longitude,
+                    "activity_name": activity.activity_name,
+                    "recorded_at": activity.recorded_at.isoformat()
+                }
+                for activity in recent_activities
+            ],
+            "user_location_stats": user_stats_with_unique_locations
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching location analytics: {str(e)}")
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)

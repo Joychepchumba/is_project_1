@@ -13,8 +13,7 @@ class ModerateSafetyTipsPage extends StatefulWidget {
 class _ModerateSafetyTipsPageState extends State<ModerateSafetyTipsPage> {
   List<dynamic> safetyTips = [];
   String selectedStatus = 'pending';
-  String baseUrl =
-      'https://d2cb-41-90-178-146.ngrok-free.app';
+  String baseUrl = 'https://b0b2bb2b9a75.ngrok-free.app';
 
   @override
   void initState() {
@@ -22,6 +21,7 @@ class _ModerateSafetyTipsPageState extends State<ModerateSafetyTipsPage> {
     loadEnv();
     _loadSafetyTips();
   }
+
   Future<void> loadEnv() async {
     try {
       await dotenv.load(fileName: ".env");
@@ -54,23 +54,25 @@ class _ModerateSafetyTipsPageState extends State<ModerateSafetyTipsPage> {
     );
     if (response.statusCode == 200) {
       _loadSafetyTips();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Tip updated: $action')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Tip updated: $action')));
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Failed to update tip")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Failed to update tip")));
     }
   }
 
   Future<void> _permanentlyDeleteTip(int tipId) async {
-    final response = await http.delete(Uri.parse('$baseUrl/safety_tips/$tipId'));
+    final response = await http.delete(
+      Uri.parse('$baseUrl/safety_tips/$tipId'),
+    );
     if (response.statusCode == 200) {
       _loadSafetyTips();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Tip permanently deleted.")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Tip permanently deleted.")));
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Failed to permanently delete tip.")),
@@ -127,7 +129,9 @@ class _ModerateSafetyTipsPageState extends State<ModerateSafetyTipsPage> {
   }
 
   Widget _buildFilteredList() {
-    final filtered = safetyTips.where((tip) => tip['status'] == selectedStatus).toList();
+    final filtered = safetyTips
+        .where((tip) => tip['status'] == selectedStatus)
+        .toList();
     return ListView.builder(
       itemCount: filtered.length,
       itemBuilder: (context, index) => _buildTipCard(filtered[index]),
@@ -178,18 +182,25 @@ class _ModerateSafetyTipsPageState extends State<ModerateSafetyTipsPage> {
       'deleted': ['pending'],
     };
 
-    final entries = transitions[currentStatus]?.map((status) {
-      return PopupMenuItem(
-        value: status,
-        child: Text("Mark as ${status[0].toUpperCase()}${status.substring(1)}"),
-      );
-    }).toList() ?? [];
+    final entries =
+        transitions[currentStatus]?.map((status) {
+          return PopupMenuItem(
+            value: status,
+            child: Text(
+              "Mark as ${status[0].toUpperCase()}${status.substring(1)}",
+            ),
+          );
+        }).toList() ??
+        [];
 
     if (currentStatus == 'deleted') {
       entries.add(
         const PopupMenuItem(
           value: 'permanently_delete',
-          child: Text("Permanently Delete", style: TextStyle(color: Colors.red)),
+          child: Text(
+            "Permanently Delete",
+            style: TextStyle(color: Colors.red),
+          ),
         ),
       );
     }
@@ -210,13 +221,17 @@ class _ModerateSafetyTipsPageState extends State<ModerateSafetyTipsPage> {
             padding: const EdgeInsets.all(8.0),
             child: Wrap(
               spacing: 8,
-              children: ['pending', 'verified', 'false', 'deleted'].map((status) {
+              children: ['pending', 'verified', 'false', 'deleted'].map((
+                status,
+              ) {
                 return ElevatedButton(
                   onPressed: () {
                     setState(() => selectedStatus = status);
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: selectedStatus == status ? const Color(0xFF4FABCB) : const Color.fromARGB(255, 224, 224, 224),
+                    backgroundColor: selectedStatus == status
+                        ? const Color(0xFF4FABCB)
+                        : const Color.fromARGB(255, 224, 224, 224),
                   ),
                   child: Text(status[0].toUpperCase() + status.substring(1)),
                 );

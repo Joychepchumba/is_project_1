@@ -88,10 +88,7 @@ class EducationalContent {
 }
 
 class _UserHomepageState extends State<UserHomepage> {
-     String baseUrl =
-      'https://d2cb-41-90-178-146.ngrok-free.app'; // Default fallback
-
-
+  String baseUrl = 'https://b0b2bb2b9a75.ngrok-free.app'; // Default fallback
 
   ProfileResponse? profile;
   List<EmergencyContact> emergencyContacts = [];
@@ -106,7 +103,7 @@ class _UserHomepageState extends State<UserHomepage> {
   @override
   void initState() {
     super.initState();
-     loadEnv();
+    loadEnv();
     _loadProfileData().then((_) async {
       final userId = await _getUserIdFromToken();
       if (userId != null) {
@@ -119,7 +116,6 @@ class _UserHomepageState extends State<UserHomepage> {
     _fetchSafetyTips();
     _fetchEducationalContent();
   }
-  
 
   Future<void> loadEnv() async {
     try {
@@ -166,7 +162,6 @@ class _UserHomepageState extends State<UserHomepage> {
 
   Future<void> _fetchSafetyTips() async {
     try {
-      
       final res = await http.get(Uri.parse('$baseUrl/get_tips'));
       if (res.statusCode == 200) {
         final List<dynamic> data = jsonDecode(res.body);
@@ -207,7 +202,9 @@ class _UserHomepageState extends State<UserHomepage> {
       if (res.statusCode == 200) {
         final List<dynamic> data = jsonDecode(res.body);
         setState(() {
-          educationalItems = data.map((e) => EducationalContent.fromJson(e)).toList();
+          educationalItems = data
+              .map((e) => EducationalContent.fromJson(e))
+              .toList();
           eduLoading = false;
         });
       } else {
@@ -240,7 +237,11 @@ class _UserHomepageState extends State<UserHomepage> {
     final userId = await _getUserIdFromToken();
     if (userId == null || userId == "0") {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("You must be logged in with a valid account to purchase.")),
+        const SnackBar(
+          content: Text(
+            "You must be logged in with a valid account to purchase.",
+          ),
+        ),
       );
       return;
     }
@@ -249,20 +250,19 @@ class _UserHomepageState extends State<UserHomepage> {
       final response = await http.post(
         Uri.parse('$baseUrl/capture-order/$orderId'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          "user_id": userId,
-          "content_id": contentId,
-        }),
+        body: jsonEncode({"user_id": userId, "content_id": contentId}),
       );
 
       if (response.statusCode == 200) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Payment successful!")),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text("Payment successful!")));
         await _fetchPurchasedContentIds(userId);
         setState(() {});
       } else {
-        print("Capture payment failed: ${response.statusCode} ${response.body}");
+        print(
+          "Capture payment failed: ${response.statusCode} ${response.body}",
+        );
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Payment failed to capture.")),
         );
@@ -441,7 +441,8 @@ class _UserHomepageState extends State<UserHomepage> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => const SafetyTipsPage(showUploadDialog: true),
+                        builder: (_) =>
+                            const SafetyTipsPage(showUploadDialog: true),
                       ),
                     );
                   },
@@ -560,7 +561,10 @@ class _UserHomepageState extends State<UserHomepage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        ...safetyTips.take(2).map((tip) => _buildExpandableTipCard(tip)).toList(),
+        ...safetyTips
+            .take(2)
+            .map((tip) => _buildExpandableTipCard(tip))
+            .toList(),
         const SizedBox(height: 8),
         Center(
           child: ElevatedButton(
@@ -584,7 +588,11 @@ class _UserHomepageState extends State<UserHomepage> {
             ),
             child: const Text(
               "See All",
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
             ),
           ),
         ),
@@ -598,12 +606,15 @@ class _UserHomepageState extends State<UserHomepage> {
       elevation: 2,
       margin: const EdgeInsets.only(bottom: 12),
       child: ExpansionTile(
-        title: Text(tip.title, style: const TextStyle(fontWeight: FontWeight.w600)),
+        title: Text(
+          tip.title,
+          style: const TextStyle(fontWeight: FontWeight.w600),
+        ),
         children: [
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
             child: Text(tip.content),
-          )
+          ),
         ],
       ),
     );
@@ -672,7 +683,11 @@ class _UserHomepageState extends State<UserHomepage> {
             ),
             child: const Text(
               "See All",
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
             ),
           ),
         ),
@@ -686,9 +701,7 @@ class _UserHomepageState extends State<UserHomepage> {
       builder: (context) {
         return Padding(
           padding: const EdgeInsets.all(16.0),
-          child: SingleChildScrollView(
-            child: Text(content),
-          ),
+          child: SingleChildScrollView(child: Text(content)),
         );
       },
     );
@@ -707,14 +720,22 @@ class _UserHomepageState extends State<UserHomepage> {
             context: context,
             builder: (_) => AlertDialog(
               title: const Text("Unlock Content"),
-              content: const Text("This is premium content. Do you want to purchase access?"),
+              content: const Text(
+                "This is premium content. Do you want to purchase access?",
+              ),
               actions: [
-                TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel")),
-                TextButton(onPressed: () => Navigator.pop(context, true), child: const Text("Buy")),
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: const Text("Cancel"),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  child: const Text("Buy"),
+                ),
               ],
             ),
           );
-          
+
           if (shouldPay == true) {
             _startPaymentFlow(item);
           }
@@ -753,7 +774,10 @@ class _UserHomepageState extends State<UserHomepage> {
                     if (item.isPaid && !isUnlocked)
                       Text(
                         "KES ${item.price.toStringAsFixed(2)}",
-                        style: const TextStyle(fontSize: 12, color: Colors.orange),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.orange,
+                        ),
                       ),
                     if (isUnlocked)
                       Text(
