@@ -28,7 +28,7 @@ class _AddLegalTipScreenState extends State<AddLegalTipScreen> {
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
   final ImagePicker _imagePicker = ImagePicker();
-  String baseUrl = 'https://b0b2bb2b9a75.ngrok-free.app';
+  String baseUrl = 'https://8d6b815e648b.ngrok-free.app';
 
   File? _selectedImage;
   bool _isLoading = false;

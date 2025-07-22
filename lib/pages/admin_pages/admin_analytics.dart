@@ -71,7 +71,7 @@ class _AdminAnalyticsPageState extends State<AdminAnalyticsPage> {
   //UserDistribution? userDistribution;
   DangerZonesData? dangerZonesData;
 
-  String baseUrl = 'https://b0b2bb2b9a75.ngrok-free.app';
+  String baseUrl = 'https://8d6b815e648b.ngrok-free.app';
 
   @override
   void initState() {

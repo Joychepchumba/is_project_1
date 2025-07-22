@@ -88,7 +88,7 @@ class EducationalContent {
 }
 
 class _UserHomepageState extends State<UserHomepage> {
-  String baseUrl = 'https://b0b2bb2b9a75.ngrok-free.app'; // Default fallback
+  String baseUrl = 'https://8d6b815e648b.ngrok-free.app'; // Default fallback
 
   ProfileResponse? profile;
   List<EmergencyContact> emergencyContacts = [];

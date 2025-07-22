@@ -166,7 +166,7 @@ class _UserAnalyticsState extends State<UserAnalytics> {
   DangerZonesData? dangerZonesData;
   LocationAnalytics? locationAnalytics;
 
-  String baseUrl = 'https://b0b2bb2b9a75.ngrok-free.app';
+  String baseUrl = 'https://8d6b815e648b.ngrok-free.app';
 
   @override
   void initState() {

@@ -40,7 +40,7 @@ class _RegisterPageState extends State<RegisterPage> {
   bool _isLoading = false;
   String API_BASE_URL =
       dotenv.env['API_BASE_URL'] ??
-      'https://b0b2bb2b9a75.ngrok-free.app'; // Default fallback
+      'https://8d6b815e648b.ngrok-free.app'; // Default fallback
 
   // Default fallback
 
